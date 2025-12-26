@@ -93,9 +93,8 @@ function loginForm() {
                 
                 localStorage.setItem('guitar_io_current_user', JSON.stringify(currentUser));
                 
-                // Redirect to dashboard (TODO: create dashboard page)
-                console.log('Login successful!', { email: currentUser.email });
-                alert('Login successful! (Dashboard coming soon)');
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
                 
             } catch (error) {
                 console.error('Login error:', error);
