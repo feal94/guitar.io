@@ -1,6 +1,29 @@
 // guitar.io - Authentication Module with Alpine.js
 
 /**
+ * Hash a string using SHA-256
+ * @param {string} message - The string to hash
+ * @returns {Promise<string>} Hex string of the hash
+ */
+async function sha256Hash(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+/**
+ * Validate email format
+ * @param {string} email - Email to validate
+ * @returns {boolean} True if valid email format
+ */
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+/**
  * Alpine.js component for login form
  */
 function loginForm() {
@@ -19,42 +42,52 @@ function loginForm() {
             
             // Validate inputs
             if (!this.username || !this.password) {
-                this.errorMessage = 'Please enter both username and password.';
+                this.errorMessage = 'Please enter both email and password.';
+                return;
+            }
+            
+            // Validate email format
+            if (!isValidEmail(this.username)) {
+                this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
             
             // Show loading state
             this.isLoading = true;
             
-            // Simulate network delay for demonstration
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             try {
+                // Hash the email to use as lookup key
+                const emailHash = await sha256Hash(this.username.toLowerCase().trim());
+                
                 // Get stored users from localStorage
                 const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
                 
-                // Check if user exists
-                if (!users[this.username]) {
-                    this.errorMessage = 'Username not found. Please register first.';
+                // Check if user exists (by hashed email)
+                if (!users[emailHash]) {
+                    this.errorMessage = 'Email not found. Please register first.';
                     return;
                 }
                 
-                // Verify password (in real app, this would be hashed)
-                if (users[this.username].password !== this.password) {
+                // Hash the entered password
+                const passwordHash = await sha256Hash(this.password);
+                
+                // Verify password hash
+                if (users[emailHash].passwordHash !== passwordHash) {
                     this.errorMessage = 'Incorrect password. Please try again.';
                     return;
                 }
                 
-                // Successful login
+                // Successful login - store session with original (unhashed) email for display
                 const currentUser = {
-                    username: this.username,
+                    email: this.username.toLowerCase().trim(),
+                    emailHash: emailHash,
                     loginTime: new Date().toISOString()
                 };
                 
                 localStorage.setItem('guitar_io_current_user', JSON.stringify(currentUser));
                 
                 // Redirect to dashboard (TODO: create dashboard page)
-                console.log('Login successful!', currentUser);
+                console.log('Login successful!', { email: currentUser.email });
                 alert('Login successful! (Dashboard coming soon)');
                 
             } catch (error) {
@@ -93,15 +126,23 @@ function registerForm() {
                 return;
             }
             
-            // Validate username length
-            if (this.username.length < 3) {
-                this.errorMessage = 'Username must be at least 3 characters long.';
+            // Validate email format
+            if (!isValidEmail(this.username)) {
+                this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
             
             // Validate password length
-            if (this.password.length < 6) {
-                this.errorMessage = 'Password must be at least 6 characters long.';
+            if (this.password.length < 8) {
+                this.errorMessage = 'Password must be at least 8 characters long.';
+                return;
+            }
+            
+            // Check password strength (at least one number and one letter)
+            const hasNumber = /\d/.test(this.password);
+            const hasLetter = /[a-zA-Z]/.test(this.password);
+            if (!hasNumber || !hasLetter) {
+                this.errorMessage = 'Password must contain at least one letter and one number.';
                 return;
             }
             
@@ -114,22 +155,27 @@ function registerForm() {
             // Show loading state
             this.isLoading = true;
             
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             try {
+                // Normalize email
+                const email = this.username.toLowerCase().trim();
+                
+                // Hash the email and password
+                const emailHash = await sha256Hash(email);
+                const passwordHash = await sha256Hash(this.password);
+                
                 // Get existing users
                 const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
                 
-                // Check if username already exists
-                if (users[this.username]) {
-                    this.errorMessage = 'Username already exists. Please choose another.';
+                // Check if email already exists (by hash)
+                if (users[emailHash]) {
+                    this.errorMessage = 'This email is already registered. Please login instead.';
                     return;
                 }
                 
-                // Store new user (NOTE: In production, passwords should be hashed!)
-                users[this.username] = {
-                    password: this.password,
+                // Store new user with hashed values
+                users[emailHash] = {
+                    emailHash: emailHash,
+                    passwordHash: passwordHash,
                     createdAt: new Date().toISOString()
                 };
                 
@@ -173,31 +219,45 @@ function recoverForm() {
             
             // Validate input
             if (!this.username) {
-                this.errorMessage = 'Please enter your username.';
+                this.errorMessage = 'Please enter your email address.';
+                return;
+            }
+            
+            // Validate email format
+            if (!isValidEmail(this.username)) {
+                this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
             
             // Show loading state
             this.isLoading = true;
             
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             try {
+                // Normalize and hash email
+                const email = this.username.toLowerCase().trim();
+                const emailHash = await sha256Hash(email);
+                
                 // Get existing users
                 const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
                 
-                // Check if username exists
-                if (!users[this.username]) {
-                    this.errorMessage = 'Username not found. Please check and try again.';
+                // Check if email exists (by hash)
+                if (!users[emailHash]) {
+                    this.errorMessage = 'Email not found. Please check and try again.';
                     return;
                 }
                 
-                // In a real app, this would send a recovery email
-                // For this demo, we'll just show the password (NOT secure!)
-                const recoveredPassword = users[this.username].password;
+                // In a real app with a backend, this would:
+                // 1. Generate a secure recovery token
+                // 2. Store it temporarily (with expiration)
+                // 3. Send an email with a recovery link
+                //
+                // For this static site demo, we'll simulate success
+                this.successMessage = `A password recovery link has been sent to ${email}. Please check your email.`;
                 
-                this.successMessage = `Your password is: ${recoveredPassword}`;
+                // Note: Since we're storing hashed passwords, we cannot retrieve them
+                // In a real system, the user would click a link to reset their password
+                
+                console.log('Password recovery requested for:', email);
                 
             } catch (error) {
                 console.error('Recovery error:', error);
@@ -208,4 +268,3 @@ function recoverForm() {
         }
     };
 }
-

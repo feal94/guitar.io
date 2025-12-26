@@ -29,15 +29,15 @@
                         <!-- Registration Form with Alpine.js -->
                         <div x-data="registerForm()">
                             <form @submit.prevent="handleRegister">
-                                <!-- Username -->
+                                <!-- Email -->
                                 <div class="mb-3">
-                                    <label for="username" class="form-label">Username</label>
+                                    <label for="username" class="form-label">Email</label>
                                     <input 
-                                        type="text" 
+                                        type="email" 
                                         class="form-control form-control-lg" 
                                         id="username"
                                         x-model="username"
-                                        placeholder="Choose a username"
+                                        placeholder="Enter your email"
                                         required
                                     >
                                 </div>

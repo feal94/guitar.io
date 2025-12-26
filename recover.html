@@ -29,19 +29,19 @@
                         <!-- Recovery Form with Alpine.js -->
                         <div x-data="recoverForm()">
                             <form @submit.prevent="handleRecover">
-                                <!-- Username -->
+                                <!-- Email -->
                                 <div class="mb-3">
-                                    <label for="username" class="form-label">Username</label>
+                                    <label for="username" class="form-label">Email</label>
                                     <input 
-                                        type="text" 
+                                        type="email" 
                                         class="form-control form-control-lg" 
                                         id="username"
                                         x-model="username"
-                                        placeholder="Enter your username"
+                                        placeholder="Enter your email"
                                         required
                                     >
                                     <div class="form-text">
-                                        We'll help you reset your password securely.
+                                        We'll send a password recovery link to your email.
                                     </div>
                                 </div>
                                 
