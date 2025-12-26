@@ -63,12 +63,57 @@ class DatabaseManager {
             CREATE TABLE IF NOT EXISTS users (
                 email_hash TEXT PRIMARY KEY,
                 password_hash TEXT NOT NULL,
+                display_name TEXT,
                 created_at TEXT NOT NULL,
                 last_login TEXT
             )
         `);
 
-        console.log('Database schema initialized with sample data');
+        // Songs table - stores user's song library
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS songs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email_hash TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                last_practiced TEXT,
+                FOREIGN KEY (user_email_hash) REFERENCES users(email_hash)
+            )
+        `);
+
+        // Routines table - stores user's practice routines
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS routines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email_hash TEXT NOT NULL,
+                name TEXT NOT NULL,
+                duration_minutes INTEGER,
+                description TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_email_hash) REFERENCES users(email_hash)
+            )
+        `);
+
+        // Practice sessions table - tracks practice history
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS practice_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email_hash TEXT NOT NULL,
+                session_date TEXT NOT NULL,
+                duration_minutes INTEGER,
+                routine_id INTEGER,
+                song_id INTEGER,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
+                FOREIGN KEY (routine_id) REFERENCES routines(id),
+                FOREIGN KEY (song_id) REFERENCES songs(id)
+            )
+        `);
+
+        console.log('Database schema initialized');
     }
 
     /**
