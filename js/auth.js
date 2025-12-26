@@ -62,18 +62,13 @@ function loginForm() {
                 // Get stored users from localStorage
                 const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
                 
-                // Check if user exists (by hashed email)
-                if (!users[emailHash]) {
-                    this.errorMessage = 'Email not found. Please register first.';
-                    return;
-                }
-                
                 // Hash the entered password
                 const passwordHash = await sha256Hash(this.password);
                 
-                // Verify password hash
-                if (users[emailHash].passwordHash !== passwordHash) {
-                    this.errorMessage = 'Incorrect password. Please try again.';
+                // Check if user exists and password matches
+                // Use same error message for both cases to prevent user enumeration
+                if (!users[emailHash] || users[emailHash].passwordHash !== passwordHash) {
+                    this.errorMessage = 'Email/password combination not found. Please check your credentials.';
                     return;
                 }
                 
