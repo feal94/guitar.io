@@ -33,6 +33,9 @@ class DatabaseManager {
                 const uint8Array = new Uint8Array(JSON.parse(savedDb));
                 this.db = new this.SQL.Database(uint8Array);
                 console.log('Database loaded from localStorage');
+                
+                // Run migrations to ensure new tables exist
+                await this.runMigrations();
             } else {
                 // Create new database
                 this.db = new this.SQL.Database();
@@ -105,15 +108,127 @@ class DatabaseManager {
                 duration_minutes INTEGER,
                 routine_id INTEGER,
                 song_id INTEGER,
+                exercise_id INTEGER,
                 notes TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
                 FOREIGN KEY (routine_id) REFERENCES routines(id),
-                FOREIGN KEY (song_id) REFERENCES songs(id)
+                FOREIGN KEY (song_id) REFERENCES songs(id),
+                FOREIGN KEY (exercise_id) REFERENCES exercises(id)
             )
         `);
 
+        // Exercises table - pre-populated guitar exercises
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS exercises (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                difficulty TEXT NOT NULL,
+                category TEXT NOT NULL,
+                image_path TEXT,
+                created_at TEXT NOT NULL
+            )
+        `);
+
+        // Exercise progress table - tracks user's exercise completion
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS exercise_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email_hash TEXT NOT NULL,
+                exercise_id INTEGER NOT NULL,
+                times_practiced INTEGER DEFAULT 0,
+                last_practiced TEXT,
+                completed INTEGER DEFAULT 0,
+                FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
+                FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+            )
+        `);
+
+        // Insert sample exercises
+        const exerciseCount = this.query('SELECT COUNT(*) as count FROM exercises');
+        if (exerciseCount[0].count === 0) {
+            this.db.run(`
+                INSERT INTO exercises (title, description, difficulty, category, image_path, created_at)
+                VALUES 
+                    ('Major Scale', 'Practice playing the major scale in all positions across the fretboard. Focus on clean notes and smooth transitions.', 'beginner', 'scales', 'images/exercises/major-scale.png', datetime('now')),
+                    ('Pentatonic Scale', 'Learn the minor pentatonic scale patterns. Essential for improvisation and soloing.', 'beginner', 'scales', 'images/exercises/pentatonic.png', datetime('now')),
+                    ('Chromatic Exercises', 'Finger independence and dexterity exercises using chromatic patterns.', 'beginner', 'technique', 'images/exercises/chromatic.png', datetime('now')),
+                    ('Barre Chords', 'Master moveable barre chord shapes (E and A forms). Essential for playing up the neck.', 'intermediate', 'chords', 'images/exercises/barre-chords.png', datetime('now')),
+                    ('Alternate Picking', 'Develop speed and accuracy with alternate picking technique. Start slow and build up.', 'intermediate', 'technique', 'images/exercises/alternate-picking.png', datetime('now')),
+                    ('String Skipping', 'Practice jumping between non-adjacent strings cleanly and accurately.', 'advanced', 'technique', 'images/exercises/string-skipping.png', datetime('now'))
+            `);
+        }
+
         console.log('Database schema initialized');
+    }
+
+    /**
+     * Run migrations to add new tables/columns to existing database
+     */
+    async runMigrations() {
+        // Check if exercises table exists
+        const tables = this.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='exercises'"
+        );
+        
+        if (tables.length === 0) {
+            console.log('Running migration: Adding exercises tables');
+            
+            // Add exercises table
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS exercises (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    difficulty TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    image_path TEXT,
+                    created_at TEXT NOT NULL
+                )
+            `);
+
+            // Add exercise_progress table
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS exercise_progress (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email_hash TEXT NOT NULL,
+                    exercise_id INTEGER NOT NULL,
+                    times_practiced INTEGER DEFAULT 0,
+                    last_practiced TEXT,
+                    completed INTEGER DEFAULT 0,
+                    FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
+                    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+                )
+            `);
+
+            // Add exercise_id to practice_sessions if column doesn't exist
+            try {
+                this.db.run(`
+                    ALTER TABLE practice_sessions ADD COLUMN exercise_id INTEGER REFERENCES exercises(id)
+                `);
+            } catch (e) {
+                // Column might already exist, ignore error
+                console.log('exercise_id column might already exist');
+            }
+
+            // Insert sample exercises
+            this.db.run(`
+                INSERT INTO exercises (title, description, difficulty, category, image_path, created_at)
+                VALUES 
+                    ('Major Scale', 'Practice playing the major scale in all positions across the fretboard. Focus on clean notes and smooth transitions.', 'beginner', 'scales', 'images/exercises/placeholder.png', datetime('now')),
+                    ('Pentatonic Scale', 'Learn the minor pentatonic scale patterns. Essential for improvisation and soloing.', 'beginner', 'scales', 'images/exercises/placeholder.png', datetime('now')),
+                    ('Chromatic Exercises', 'Finger independence and dexterity exercises using chromatic patterns.', 'beginner', 'technique', 'images/exercises/placeholder.png', datetime('now')),
+                    ('Barre Chords', 'Master moveable barre chord shapes (E and A forms). Essential for playing up the neck.', 'intermediate', 'chords', 'images/exercises/placeholder.png', datetime('now')),
+                    ('Alternate Picking', 'Develop speed and accuracy with alternate picking technique. Start slow and build up.', 'intermediate', 'technique', 'images/exercises/placeholder.png', datetime('now')),
+                    ('String Skipping', 'Practice jumping between non-adjacent strings cleanly and accurately.', 'advanced', 'technique', 'images/exercises/placeholder.png', datetime('now'))
+            `);
+
+            // Save database after migration
+            this.saveDatabase();
+            
+            console.log('Migration complete: Exercises tables added');
+        }
     }
 
     /**
