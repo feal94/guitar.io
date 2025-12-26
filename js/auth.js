@@ -1,4 +1,4 @@
-// guitar.io - Authentication Module with Alpine.js
+// guitar.io - Authentication Module with Alpine.js and SQL.js
 
 /**
  * Hash a string using SHA-256
@@ -56,21 +56,33 @@ function loginForm() {
             this.isLoading = true;
             
             try {
+                // Ensure database is initialized
+                await db.initialize();
+                
                 // Hash the email to use as lookup key
                 const emailHash = await sha256Hash(this.username.toLowerCase().trim());
                 
-                // Get stored users from localStorage
-                const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
+                // Query user from database
+                const user = db.queryOne(
+                    'SELECT * FROM users WHERE email_hash = ?',
+                    [emailHash]
+                );
                 
                 // Hash the entered password
                 const passwordHash = await sha256Hash(this.password);
                 
                 // Check if user exists and password matches
                 // Use same error message for both cases to prevent user enumeration
-                if (!users[emailHash] || users[emailHash].passwordHash !== passwordHash) {
+                if (!user || user.password_hash !== passwordHash) {
                     this.errorMessage = 'Email/password combination not found. Please check your credentials.';
                     return;
                 }
+                
+                // Update last login time
+                db.execute(
+                    'UPDATE users SET last_login = datetime("now") WHERE email_hash = ?',
+                    [emailHash]
+                );
                 
                 // Successful login - store session with original (unhashed) email for display
                 const currentUser = {
@@ -151,6 +163,9 @@ function registerForm() {
             this.isLoading = true;
             
             try {
+                // Ensure database is initialized
+                await db.initialize();
+                
                 // Normalize email
                 const email = this.username.toLowerCase().trim();
                 
@@ -158,23 +173,22 @@ function registerForm() {
                 const emailHash = await sha256Hash(email);
                 const passwordHash = await sha256Hash(this.password);
                 
-                // Get existing users
-                const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
-                
                 // Check if email already exists (by hash)
-                if (users[emailHash]) {
+                const existingUser = db.queryOne(
+                    'SELECT email_hash FROM users WHERE email_hash = ?',
+                    [emailHash]
+                );
+                
+                if (existingUser) {
                     this.errorMessage = 'This email is already registered. Please login instead.';
                     return;
                 }
                 
-                // Store new user with hashed values
-                users[emailHash] = {
-                    emailHash: emailHash,
-                    passwordHash: passwordHash,
-                    createdAt: new Date().toISOString()
-                };
-                
-                localStorage.setItem('guitar_io_users', JSON.stringify(users));
+                // Insert new user into database
+                db.execute(
+                    'INSERT INTO users (email_hash, password_hash, created_at) VALUES (?, ?, datetime("now"))',
+                    [emailHash, passwordHash]
+                );
                 
                 // Show success message
                 this.successMessage = 'Account created successfully! Redirecting to login...';
@@ -228,15 +242,20 @@ function recoverForm() {
             this.isLoading = true;
             
             try {
+                // Ensure database is initialized
+                await db.initialize();
+                
                 // Normalize and hash email
                 const email = this.username.toLowerCase().trim();
                 const emailHash = await sha256Hash(email);
                 
-                // Get existing users
-                const users = JSON.parse(localStorage.getItem('guitar_io_users') || '{}');
-                
                 // Check if email exists (by hash)
-                if (!users[emailHash]) {
+                const user = db.queryOne(
+                    'SELECT email_hash FROM users WHERE email_hash = ?',
+                    [emailHash]
+                );
+                
+                if (!user) {
                     this.errorMessage = 'Email not found. Please check and try again.';
                     return;
                 }
