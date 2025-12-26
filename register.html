@@ -8,6 +8,9 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -23,51 +26,79 @@
                             <p class="text-muted">Create your account</p>
                         </div>
                         
-                        <!-- Registration Form -->
-                        <form id="registerForm">
-                            <!-- Username -->
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control form-control-lg" 
-                                    id="username" 
-                                    placeholder="Choose a username"
-                                    required
-                                >
-                            </div>
-                            
-                            <!-- Password -->
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input 
-                                    type="password" 
-                                    class="form-control form-control-lg" 
-                                    id="password" 
-                                    placeholder="Create a password"
-                                    required
-                                >
-                            </div>
-                            
-                            <!-- Confirm Password -->
-                            <div class="mb-4">
-                                <label for="confirmPassword" class="form-label">Confirm Password</label>
-                                <input 
-                                    type="password" 
-                                    class="form-control form-control-lg" 
-                                    id="confirmPassword" 
-                                    placeholder="Confirm your password"
-                                    required
-                                >
-                            </div>
-                            
-                            <!-- Register Button -->
-                            <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    Create Account
-                                </button>
-                            </div>
-                        </form>
+                        <!-- Registration Form with Alpine.js -->
+                        <div x-data="registerForm()">
+                            <form @submit.prevent="handleRegister">
+                                <!-- Username -->
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control form-control-lg" 
+                                        id="username"
+                                        x-model="username"
+                                        placeholder="Choose a username"
+                                        required
+                                    >
+                                </div>
+                                
+                                <!-- Password -->
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input 
+                                        type="password" 
+                                        class="form-control form-control-lg" 
+                                        id="password"
+                                        x-model="password"
+                                        placeholder="Create a password"
+                                        required
+                                    >
+                                </div>
+                                
+                                <!-- Confirm Password -->
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                    <input 
+                                        type="password" 
+                                        class="form-control form-control-lg" 
+                                        id="confirmPassword"
+                                        x-model="confirmPassword"
+                                        placeholder="Confirm your password"
+                                        required
+                                    >
+                                </div>
+                                
+                                <!-- Error Message -->
+                                <div x-show="errorMessage" 
+                                     x-transition
+                                     class="alert alert-danger mb-3" 
+                                     role="alert"
+                                     x-text="errorMessage">
+                                </div>
+                                
+                                <!-- Success Message -->
+                                <div x-show="successMessage" 
+                                     x-transition
+                                     class="alert alert-success mb-3" 
+                                     role="alert"
+                                     x-text="successMessage">
+                                </div>
+                                
+                                <!-- Register Button -->
+                                <div class="d-grid mb-3">
+                                    <button 
+                                        type="submit" 
+                                        class="btn btn-primary btn-lg"
+                                        :disabled="isLoading">
+                                        <span x-show="!isLoading">Create Account</span>
+                                        <span x-show="isLoading">
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Creating...
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                         
                         <!-- Links -->
                         <div class="text-center">
@@ -88,6 +119,7 @@
     
     <!-- Custom JS -->
     <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
 
