@@ -121,7 +121,7 @@ class DatabaseManager {
         // Exercises table - pre-populated guitar exercises
         this.db.run(`
             CREATE TABLE IF NOT EXISTS exercises (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 difficulty TEXT NOT NULL,
@@ -136,7 +136,7 @@ class DatabaseManager {
             CREATE TABLE IF NOT EXISTS exercise_progress (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_email_hash TEXT NOT NULL,
-                exercise_id INTEGER NOT NULL,
+                exercise_id TEXT NOT NULL,
                 times_practiced INTEGER DEFAULT 0,
                 last_practiced TEXT,
                 completed INTEGER DEFAULT 0,
@@ -145,20 +145,8 @@ class DatabaseManager {
             )
         `);
 
-        // Insert sample exercises
-        const exerciseCount = this.query('SELECT COUNT(*) as count FROM exercises');
-        if (exerciseCount[0].count === 0) {
-            this.db.run(`
-                INSERT INTO exercises (title, description, difficulty, category, image_path, created_at)
-                VALUES 
-                    ('Major Scale', 'Practice playing the major scale in all positions across the fretboard. Focus on clean notes and smooth transitions.', 'beginner', 'scales', 'images/exercises/major-scale.png', datetime('now')),
-                    ('Pentatonic Scale', 'Learn the minor pentatonic scale patterns. Essential for improvisation and soloing.', 'beginner', 'scales', 'images/exercises/pentatonic.png', datetime('now')),
-                    ('Chromatic Exercises', 'Finger independence and dexterity exercises using chromatic patterns.', 'beginner', 'technique', 'images/exercises/chromatic.png', datetime('now')),
-                    ('Barre Chords', 'Master moveable barre chord shapes (E and A forms). Essential for playing up the neck.', 'intermediate', 'chords', 'images/exercises/barre-chords.png', datetime('now')),
-                    ('Alternate Picking', 'Develop speed and accuracy with alternate picking technique. Start slow and build up.', 'intermediate', 'technique', 'images/exercises/alternate-picking.png', datetime('now')),
-                    ('String Skipping', 'Practice jumping between non-adjacent strings cleanly and accurately.', 'advanced', 'technique', 'images/exercises/string-skipping.png', datetime('now'))
-            `);
-        }
+        // Import exercises from JSON file
+        await this.importExercisesFromJSON();
 
         console.log('Database schema initialized');
     }
@@ -178,7 +166,7 @@ class DatabaseManager {
             // Add exercises table
             this.db.run(`
                 CREATE TABLE IF NOT EXISTS exercises (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
                     description TEXT NOT NULL,
                     difficulty TEXT NOT NULL,
@@ -193,7 +181,7 @@ class DatabaseManager {
                 CREATE TABLE IF NOT EXISTS exercise_progress (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_email_hash TEXT NOT NULL,
-                    exercise_id INTEGER NOT NULL,
+                    exercise_id TEXT NOT NULL,
                     times_practiced INTEGER DEFAULT 0,
                     last_practiced TEXT,
                     completed INTEGER DEFAULT 0,
@@ -205,29 +193,41 @@ class DatabaseManager {
             // Add exercise_id to practice_sessions if column doesn't exist
             try {
                 this.db.run(`
-                    ALTER TABLE practice_sessions ADD COLUMN exercise_id INTEGER REFERENCES exercises(id)
+                    ALTER TABLE practice_sessions ADD COLUMN exercise_id TEXT REFERENCES exercises(id)
                 `);
             } catch (e) {
                 // Column might already exist, ignore error
                 console.log('exercise_id column might already exist');
             }
 
-            // Insert sample exercises
-            this.db.run(`
-                INSERT INTO exercises (title, description, difficulty, category, image_path, created_at)
-                VALUES 
-                    ('Major Scale', 'Practice playing the major scale in all positions across the fretboard. Focus on clean notes and smooth transitions.', 'beginner', 'scales', 'images/exercises/placeholder.png', datetime('now')),
-                    ('Pentatonic Scale', 'Learn the minor pentatonic scale patterns. Essential for improvisation and soloing.', 'beginner', 'scales', 'images/exercises/placeholder.png', datetime('now')),
-                    ('Chromatic Exercises', 'Finger independence and dexterity exercises using chromatic patterns.', 'beginner', 'technique', 'images/exercises/placeholder.png', datetime('now')),
-                    ('Barre Chords', 'Master moveable barre chord shapes (E and A forms). Essential for playing up the neck.', 'intermediate', 'chords', 'images/exercises/placeholder.png', datetime('now')),
-                    ('Alternate Picking', 'Develop speed and accuracy with alternate picking technique. Start slow and build up.', 'intermediate', 'technique', 'images/exercises/placeholder.png', datetime('now')),
-                    ('String Skipping', 'Practice jumping between non-adjacent strings cleanly and accurately.', 'advanced', 'technique', 'images/exercises/placeholder.png', datetime('now'))
-            `);
-
-            // Save database after migration
-            this.saveDatabase();
+            // Import exercises from JSON file
+            await this.importExercisesFromJSON();
             
             console.log('Migration complete: Exercises tables added');
+        }
+    }
+
+    /**
+     * Import exercises from exercises.json file
+     */
+    async importExercisesFromJSON() {
+        try {
+            const response = await fetch('exercises.json');
+            const exercises = await response.json();
+            
+            for (const exercise of exercises) {
+                this.db.run(`
+                    INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                `, [exercise.id, exercise.title, exercise.description, exercise.difficulty, exercise.category, exercise.image_path || null]);
+            }
+            
+            // Save database after import
+            this.saveDatabase();
+            
+            console.log(`Imported ${exercises.length} exercises from exercises.json`);
+        } catch (error) {
+            console.error('Error importing exercises:', error);
         }
     }
 

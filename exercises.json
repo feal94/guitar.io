@@ -1,0 +1,51 @@
+[
+  {
+    "id": "major-scale",
+    "title": "Major Scale",
+    "description": "Practice playing the major scale in all positions across the fretboard. Focus on clean notes and smooth transitions.",
+    "difficulty": "beginner",
+    "category": "scales",
+    "image_path": "images/exercises/major-scale.png"
+  },
+  {
+    "id": "pentatonic-scale",
+    "title": "Pentatonic Scale",
+    "description": "Learn the minor pentatonic scale patterns. Essential for improvisation and soloing.",
+    "difficulty": "beginner",
+    "category": "scales",
+    "image_path": "images/exercises/pentatonic-scale.png"
+  },
+  {
+    "id": "chromatic-exercises",
+    "title": "Chromatic Exercises",
+    "description": "Finger independence and dexterity exercises using chromatic patterns.",
+    "difficulty": "beginner",
+    "category": "technique",
+    "image_path": "images/exercises/chromatic-exercises.png"
+  },
+  {
+    "id": "barre-chords",
+    "title": "Barre Chords",
+    "description": "Master moveable barre chord shapes (E and A forms). Essential for playing up the neck.",
+    "difficulty": "intermediate",
+    "category": "chords",
+    "image_path": "images/exercises/barre-chords.png"
+  },
+  {
+    "id": "alternate-picking",
+    "title": "Alternate Picking",
+    "description": "Develop speed and accuracy with alternate picking technique. Start slow and build up.",
+    "difficulty": "intermediate",
+    "category": "technique",
+    "image_path": "images/exercises/alternate-picking.png"
+  },
+  {
+    "id": "string-skipping",
+    "title": "String Skipping",
+    "description": "Practice jumping between non-adjacent strings cleanly and accurately.",
+    "difficulty": "advanced",
+    "category": "technique",
+    "image_path": "images/exercises/string-skipping.png"
+  }
+]
+
