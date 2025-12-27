@@ -1,0 +1,26 @@
+[
+  {
+    "id": "major-scale",
+    "title": "Major Scale",
+    "description": "Start by picking which key you want to play. Then, focus on playing it in the first position (see image below). Focus on clean notes and smooth transitions. Try to focus on alternate picking and make sure you are using the correct fingers.",
+    "difficulty": "beginner",
+    "category": "scales",
+    "image_path": "images/exercises/major_scale_pos_1.gif"
+  },
+  {
+    "id": "pentatonic-scale",
+    "title": "Minor pentatonic Scale",
+    "description": "Start by picking which key you want to play. Then, focus on playing it in the first position (see image below). Focus on clean notes and smooth transitions. Try to focus on alternate picking and make sure you are using the correct fingers.",
+    "difficulty": "beginner",
+    "category": "scales",
+    "image_path": "images/exercises/minor_pentatonic_pos_1.jpeg"
+  },
+  {
+    "id": "chords-changes",
+    "title": "Chord Transitions",
+    "description": "Choose a chord progression and practice transitioning between chords smoothly and accurately. Start with single down strokes and focus on staying on the beat.",
+    "difficulty": "intermediate",
+    "category": "chords"
+  }
+]
+

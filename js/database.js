@@ -33,6 +33,9 @@ class DatabaseManager {
                 const uint8Array = new Uint8Array(JSON.parse(savedDb));
                 this.db = new this.SQL.Database(uint8Array);
                 console.log('Database loaded from localStorage');
+                
+                // Run migrations to ensure new tables exist
+                await this.runMigrations();
             } else {
                 // Create new database
                 this.db = new this.SQL.Database();
@@ -105,15 +108,127 @@ class DatabaseManager {
                 duration_minutes INTEGER,
                 routine_id INTEGER,
                 song_id INTEGER,
+                exercise_id INTEGER,
                 notes TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
                 FOREIGN KEY (routine_id) REFERENCES routines(id),
-                FOREIGN KEY (song_id) REFERENCES songs(id)
+                FOREIGN KEY (song_id) REFERENCES songs(id),
+                FOREIGN KEY (exercise_id) REFERENCES exercises(id)
             )
         `);
 
+        // Exercises table - pre-populated guitar exercises
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS exercises (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                difficulty TEXT NOT NULL,
+                category TEXT NOT NULL,
+                image_path TEXT,
+                created_at TEXT NOT NULL
+            )
+        `);
+
+        // Exercise progress table - tracks user's exercise completion
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS exercise_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_email_hash TEXT NOT NULL,
+                exercise_id TEXT NOT NULL,
+                times_practiced INTEGER DEFAULT 0,
+                last_practiced TEXT,
+                completed INTEGER DEFAULT 0,
+                FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
+                FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+            )
+        `);
+
+        // Import exercises from JSON file
+        await this.importExercisesFromJSON();
+
         console.log('Database schema initialized');
+    }
+
+    /**
+     * Run migrations to add new tables/columns to existing database
+     */
+    async runMigrations() {
+        // Check if exercises table exists
+        const tables = this.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='exercises'"
+        );
+        
+        if (tables.length === 0) {
+            console.log('Running migration: Adding exercises tables');
+            
+            // Add exercises table
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS exercises (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    difficulty TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    image_path TEXT,
+                    created_at TEXT NOT NULL
+                )
+            `);
+
+            // Add exercise_progress table
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS exercise_progress (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email_hash TEXT NOT NULL,
+                    exercise_id TEXT NOT NULL,
+                    times_practiced INTEGER DEFAULT 0,
+                    last_practiced TEXT,
+                    completed INTEGER DEFAULT 0,
+                    FOREIGN KEY (user_email_hash) REFERENCES users(email_hash),
+                    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+                )
+            `);
+
+            // Add exercise_id to practice_sessions if column doesn't exist
+            try {
+                this.db.run(`
+                    ALTER TABLE practice_sessions ADD COLUMN exercise_id TEXT REFERENCES exercises(id)
+                `);
+            } catch (e) {
+                // Column might already exist, ignore error
+                console.log('exercise_id column might already exist');
+            }
+
+            // Import exercises from JSON file
+            await this.importExercisesFromJSON();
+            
+            console.log('Migration complete: Exercises tables added');
+        }
+    }
+
+    /**
+     * Import exercises from exercises.json file
+     */
+    async importExercisesFromJSON() {
+        try {
+            const response = await fetch('exercises.json');
+            const exercises = await response.json();
+            
+            for (const exercise of exercises) {
+                this.db.run(`
+                    INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                `, [exercise.id, exercise.title, exercise.description, exercise.difficulty, exercise.category, exercise.image_path || null]);
+            }
+            
+            // Save database after import
+            this.saveDatabase();
+            
+            console.log(`Imported ${exercises.length} exercises from exercises.json`);
+        } catch (error) {
+            console.error('Error importing exercises:', error);
+        }
     }
 
     /**

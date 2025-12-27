@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>guitar.io - Exercise</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/exercise.css">
+</head>
+<body>
+    <div x-data="exerciseApp()" class="dashboard-container">
+        <!-- Top Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold text-primary" href="dashboard.html">guitar.io</a>
+                
+                <div class="d-flex align-items-center">
+                    <a href="exercises.html" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Exercises
+                    </a>
+                    
+                    <!-- User Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <span x-text="userEmail">User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" @click.prevent="alert('Profile - Coming soon')"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @click.prevent="logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mt-4" x-show="exercise">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <!-- Exercise Header -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h2 class="mb-0" x-text="exercise.title"></h2>
+                                <span class="badge fs-6" 
+                                      :class="{
+                                          'bg-success': exercise.difficulty === 'beginner',
+                                          'bg-warning': exercise.difficulty === 'intermediate',
+                                          'bg-danger': exercise.difficulty === 'advanced'
+                                      }"
+                                      x-text="exercise.difficulty"></span>
+                            </div>
+                            <p class="text-muted mb-3" x-text="exercise.description"></p>
+                            
+                            <!-- Progress Stats -->
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <h4 class="mb-0" x-text="progress.times_practiced"></h4>
+                                        <small class="text-muted">Times Practiced</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-item">
+                                        <h4 class="mb-0" x-text="progress.last_practiced ? formatDate(progress.last_practiced) : 'Never'"></h4>
+                                        <small class="text-muted">Last Practiced</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exercise Image/Diagram -->
+                    <div class="card mb-4" x-show="exercise.image_path">
+                        <div class="card-body text-center">
+                            <img :src="exercise.image_path" 
+                                 :alt="exercise.title" 
+                                 class="img-fluid exercise-diagram">
+                            <p class="text-muted small mt-2">Exercise diagram</p>
+                        </div>
+                    </div>
+
+                    <!-- Practice Controls -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Practice Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <!-- Time Control -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Time (minutes)</label>
+                                    <div class="input-group input-group-lg">
+                                        <button class="btn btn-outline-secondary" type="button" @click="decreaseTime">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               x-model="practiceTime" 
+                                               min="5" 
+                                               max="60" 
+                                               step="5"
+                                               readonly>
+                                        <button class="btn btn-outline-secondary" type="button" @click="increaseTime">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- BPM Control -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">BPM (tempo)</label>
+                                    <div class="input-group input-group-lg">
+                                        <button class="btn btn-outline-secondary" type="button" @click="decreaseBpm">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               x-model="bpm" 
+                                               min="40" 
+                                               max="200" 
+                                               step="1"
+                                               readonly>
+                                        <button class="btn btn-outline-secondary" type="button" @click="increaseBpm">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Button -->
+                    <div class="d-grid gap-2 mb-4">
+                        <button class="btn btn-primary btn-lg" @click="startPractice">
+                            <i class="bi bi-play-fill me-2"></i>Start Practice!
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="container mt-5" x-show="!exercise">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- sql.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="js/database.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/exercise.js"></script>
+</body>
+</html>
+

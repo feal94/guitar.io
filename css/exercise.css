@@ -1,0 +1,87 @@
+/* Exercise-specific styles */
+
+/* Exercise Cards */
+.exercise-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.exercise-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.card-img-top-wrapper {
+    height: 200px;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-img-top {
+    max-height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.exercise-stats {
+    padding-top: 0.5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Exercise Diagram */
+.exercise-diagram {
+    max-width: 100%;
+    max-height: 400px;
+    border: 2px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: #fff;
+}
+
+/* Practice Controls */
+.input-group-lg .form-control {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.input-group-lg .btn {
+    font-size: 1.25rem;
+    padding: 0.5rem 1rem;
+}
+
+/* Stat Items */
+.stat-item {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+}
+
+.stat-item h4 {
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+/* Badges */
+.badge {
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card-img-top-wrapper {
+        height: 150px;
+    }
+    
+    .exercise-diagram {
+        max-height: 300px;
+    }
+    
+    .input-group-lg .form-control {
+        font-size: 1.25rem;
+    }
+}
+
