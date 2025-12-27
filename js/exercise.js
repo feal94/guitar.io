@@ -33,6 +33,9 @@ function exerciseApp() {
             // Initialize database
             await db.initialize();
             
+            // Sync exercises from JSON file
+            await this.syncExercisesFromJSON();
+            
             // Get exercise ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const exerciseId = urlParams.get('id');
@@ -44,6 +47,44 @@ function exerciseApp() {
             
             // Load exercise
             await this.loadExercise(exerciseId);
+        },
+        
+        /**
+         * Sync exercises from JSON file to database
+         */
+        async syncExercisesFromJSON() {
+            try {
+                const response = await fetch('exercises.json');
+                const exercises = await response.json();
+                
+                // Get list of IDs from JSON
+                const jsonIds = exercises.map(ex => ex.id);
+                
+                // Delete exercises that are no longer in JSON
+                const existingExercises = db.query('SELECT id FROM exercises');
+                for (const existing of existingExercises) {
+                    if (!jsonIds.includes(existing.id)) {
+                        db.execute('DELETE FROM exercises WHERE id = ?', [existing.id]);
+                        console.log(`Deleted exercise: ${existing.id}`);
+                    }
+                }
+                
+                // Insert or update exercises from JSON
+                for (const exercise of exercises) {
+                    // Check if exercise exists
+                    const existing = db.queryOne('SELECT created_at FROM exercises WHERE id = ?', [exercise.id]);
+                    const createdAt = existing ? existing.created_at : new Date().toISOString();
+                    
+                    db.execute(`
+                        INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `, [exercise.id, exercise.title, exercise.description, exercise.difficulty, exercise.category, exercise.image_path || null, createdAt]);
+                }
+                
+                console.log(`Synced ${exercises.length} exercises from JSON`);
+            } catch (error) {
+                console.error('Error syncing exercises:', error);
+            }
         },
         
         /**

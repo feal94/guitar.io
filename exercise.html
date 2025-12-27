@@ -84,6 +84,16 @@
                         </div>
                     </div>
 
+                    <!-- Exercise Image/Diagram -->
+                    <div class="card mb-4" x-show="exercise.image_path">
+                        <div class="card-body text-center">
+                            <img :src="exercise.image_path" 
+                                 :alt="exercise.title" 
+                                 class="img-fluid exercise-diagram">
+                            <p class="text-muted small mt-2">Exercise diagram</p>
+                        </div>
+                    </div>
+
                     <!-- Practice Controls -->
                     <div class="card mb-4">
                         <div class="card-header bg-white">
