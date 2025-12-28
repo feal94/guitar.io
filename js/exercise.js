@@ -23,6 +23,11 @@ function exerciseApp() {
         timerDisplay: '00:00',
         timerInterval: null,
         
+        // Metronome state
+        isMetronomeOn: false,
+        metronomeInterval: null,
+        audioContext: null,
+        
         /**
          * Initialize exercise page
          */
@@ -141,11 +146,30 @@ function exerciseApp() {
         },
         
         /**
+         * Validate and constrain practice time input
+         */
+        validatePracticeTime() {
+            // Ensure it's a number
+            this.practiceTime = parseInt(this.practiceTime) || 5;
+            
+            // Constrain to valid range
+            if (this.practiceTime < 5) {
+                this.practiceTime = 5;
+            } else if (this.practiceTime > 60) {
+                this.practiceTime = 60;
+            }
+            
+            // Round to nearest 5 minutes for consistency
+            this.practiceTime = Math.round(this.practiceTime / 5) * 5;
+        },
+        
+        /**
          * Increase BPM by 1
          */
         increaseBpm() {
             if (this.bpm < 200) {
                 this.bpm += 1;
+                this.updateMetronomeBPM();
             }
         },
         
@@ -155,7 +179,26 @@ function exerciseApp() {
         decreaseBpm() {
             if (this.bpm > 40) {
                 this.bpm -= 1;
+                this.updateMetronomeBPM();
             }
+        },
+        
+        /**
+         * Validate and constrain BPM input
+         */
+        validateBpm() {
+            // Ensure it's a number
+            this.bpm = parseInt(this.bpm) || 60;
+            
+            // Constrain to valid range
+            if (this.bpm < 40) {
+                this.bpm = 40;
+            } else if (this.bpm > 200) {
+                this.bpm = 200;
+            }
+            
+            // Update metronome if it's running
+            this.updateMetronomeBPM();
         },
         
         /**
@@ -178,6 +221,10 @@ function exerciseApp() {
             this.timerSeconds = this.practiceTime * 60; // Convert minutes to seconds
             this.updateTimerDisplay();
             
+            // Start metronome by default
+            this.isMetronomeOn = true;
+            this.startMetronome();
+            
             // Start countdown
             this.timerInterval = setInterval(() => {
                 if (!this.isTimerPaused) {
@@ -189,6 +236,100 @@ function exerciseApp() {
                     }
                 }
             }, 1000);
+        },
+        
+        /**
+         * Initialize audio context for metronome
+         */
+        initAudioContext() {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+        
+        /**
+         * Play a single metronome click
+         */
+        playClick() {
+            if (!this.audioContext) {
+                this.initAudioContext();
+            }
+            
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Create a short, sharp click sound
+            oscillator.frequency.value = 1000; // 1000 Hz tone
+            gainNode.gain.value = 0.3; // Volume
+            
+            const now = this.audioContext.currentTime;
+            
+            // Quick attack and decay for click sound
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 0.05);
+        },
+        
+        /**
+         * Start the metronome
+         */
+        startMetronome() {
+            // Initialize audio context
+            this.initAudioContext();
+            
+            // Stop any existing metronome
+            this.stopMetronome();
+            
+            // Calculate interval in milliseconds (60000ms / BPM)
+            const interval = 60000 / this.bpm;
+            
+            // Play first click immediately
+            this.playClick();
+            
+            // Set up recurring clicks
+            this.metronomeInterval = setInterval(() => {
+                if (!this.isTimerPaused) {
+                    this.playClick();
+                }
+            }, interval);
+        },
+        
+        /**
+         * Stop the metronome
+         */
+        stopMetronome() {
+            if (this.metronomeInterval) {
+                clearInterval(this.metronomeInterval);
+                this.metronomeInterval = null;
+            }
+        },
+        
+        /**
+         * Toggle metronome on/off
+         */
+        toggleMetronome() {
+            this.isMetronomeOn = !this.isMetronomeOn;
+            
+            if (this.isMetronomeOn) {
+                this.startMetronome();
+            } else {
+                this.stopMetronome();
+            }
+        },
+        
+        /**
+         * Update BPM and restart metronome if running
+         */
+        updateMetronomeBPM() {
+            if (this.isMetronomeOn) {
+                // Restart metronome with new BPM
+                this.startMetronome();
+            }
         },
         
         /**
@@ -222,6 +363,11 @@ function exerciseApp() {
                 clearInterval(this.timerInterval);
                 this.timerInterval = null;
             }
+            
+            // Stop metronome
+            this.stopMetronome();
+            this.isMetronomeOn = false;
+            
             this.isTimerRunning = false;
             this.isTimerPaused = false;
             this.timerSeconds = 0;
