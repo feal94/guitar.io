@@ -110,11 +110,11 @@
                                         </button>
                                         <input type="number" 
                                                class="form-control text-center" 
-                                               x-model="practiceTime" 
+                                               x-model.number="practiceTime" 
+                                               @change="validatePracticeTime"
                                                min="5" 
                                                max="60" 
-                                               step="5"
-                                               readonly>
+                                               step="5">
                                         <button class="btn btn-outline-secondary" type="button" @click="increaseTime">
                                             <i class="bi bi-plus"></i>
                                         </button>
@@ -130,11 +130,11 @@
                                         </button>
                                         <input type="number" 
                                                class="form-control text-center" 
-                                               x-model="bpm" 
+                                               x-model.number="bpm" 
+                                               @change="validateBpm"
                                                min="40" 
                                                max="200" 
-                                               step="1"
-                                               readonly>
+                                               step="1">
                                         <button class="btn btn-outline-secondary" type="button" @click="increaseBpm">
                                             <i class="bi bi-plus"></i>
                                         </button>
@@ -149,7 +149,9 @@
                         <div class="card-body text-center py-5">
                             <h2 class="text-muted mb-2">Time Remaining</h2>
                             <div class="timer-display mb-4" x-text="timerDisplay"></div>
-                            <div class="d-flex gap-2 justify-content-center">
+                            
+                            <!-- Timer Controls -->
+                            <div class="d-flex gap-2 justify-content-center mb-4">
                                 <button class="btn btn-warning btn-lg" @click="isTimerPaused ? resumeTimer() : pauseTimer()" x-show="!isTimerPaused">
                                     <i class="bi bi-pause-fill me-2"></i>Pause
                                 </button>
@@ -159,6 +161,36 @@
                                 <button class="btn btn-danger btn-lg" @click="stopTimer">
                                     <i class="bi bi-stop-fill me-2"></i>Stop
                                 </button>
+                            </div>
+                            
+                            <!-- Metronome Controls -->
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <button class="btn btn-lg w-100" 
+                                            :class="isMetronomeOn ? 'btn-success' : 'btn-outline-secondary'"
+                                            @click="toggleMetronome">
+                                        <i class="bi me-2" :class="isMetronomeOn ? 'bi-volume-up-fill' : 'bi-volume-mute-fill'"></i>
+                                        <span x-text="isMetronomeOn ? 'Metronome On' : 'Metronome Off'"></span>
+                                    </button>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">BPM (tempo)</label>
+                                    <div class="input-group input-group-lg">
+                                        <button class="btn btn-outline-secondary" type="button" @click="decreaseBpm">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               x-model.number="bpm" 
+                                               @change="validateBpm"
+                                               min="40" 
+                                               max="200" 
+                                               step="1">
+                                        <button class="btn btn-outline-secondary" type="button" @click="increaseBpm">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
