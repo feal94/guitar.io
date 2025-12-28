@@ -16,6 +16,13 @@ function exerciseApp() {
         practiceTime: 5,  // Default 5 minutes
         bpm: 60,          // Default 60 BPM
         
+        // Timer state
+        isTimerRunning: false,
+        isTimerPaused: false,
+        timerSeconds: 0,
+        timerDisplay: '00:00',
+        timerInterval: null,
+        
         /**
          * Initialize exercise page
          */
@@ -155,18 +162,87 @@ function exerciseApp() {
          * Start practice session
          */
         async startPractice() {
-            // TODO: Implement timer and metronome functionality
+            if (this.isTimerRunning && !this.isTimerPaused) {
+                return; // Already running
+            }
+            
             console.log('Starting practice:', {
                 exercise: this.exercise.title,
                 time: this.practiceTime,
                 bpm: this.bpm
             });
             
-            // For now, just show a placeholder message
-            alert(`Starting practice session:\n\nExercise: ${this.exercise.title}\nTime: ${this.practiceTime} minutes\nBPM: ${this.bpm}\n\n(Timer and metronome coming soon!)`);
+            // Start the timer
+            this.isTimerRunning = true;
+            this.isTimerPaused = false;
+            this.timerSeconds = this.practiceTime * 60; // Convert minutes to seconds
+            this.updateTimerDisplay();
             
-            // Record practice session (placeholder)
+            // Start countdown
+            this.timerInterval = setInterval(() => {
+                if (!this.isTimerPaused) {
+                    this.timerSeconds--;
+                    this.updateTimerDisplay();
+                    
+                    if (this.timerSeconds <= 0) {
+                        this.completeExercise();
+                    }
+                }
+            }, 1000);
+        },
+        
+        /**
+         * Pause the timer
+         */
+        pauseTimer() {
+            this.isTimerPaused = true;
+        },
+        
+        /**
+         * Resume the timer
+         */
+        resumeTimer() {
+            this.isTimerPaused = false;
+        },
+        
+        /**
+         * Update timer display
+         */
+        updateTimerDisplay() {
+            const minutes = Math.floor(this.timerSeconds / 60);
+            const seconds = this.timerSeconds % 60;
+            this.timerDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        },
+        
+        /**
+         * Stop the timer
+         */
+        stopTimer() {
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+            this.isTimerRunning = false;
+            this.isTimerPaused = false;
+            this.timerSeconds = 0;
+            this.timerDisplay = '00:00';
+        },
+        
+        /**
+         * Complete exercise session
+         */
+        async completeExercise() {
+            // Stop the timer
+            this.stopTimer();
+            
+            // Record the session
             await this.recordPracticeSession();
+            
+            // Show completion message
+            alert('Exercise complete, well done! 🎸');
+            
+            // Reload progress to show updated stats
+            await this.loadExercise(this.exercise.id);
         },
         
         /**
