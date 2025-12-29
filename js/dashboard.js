@@ -33,17 +33,18 @@ function dashboardApp() {
             this.currentUser = JSON.parse(userData);
             this.userEmail = this.currentUser.email;
             
+
             // Initialize database
             await db.initialize();
-            
+
             // Load user data
             await this.loadUserData();
-            
-            // Generate calendar
-            this.generateCalendar();
-            
-            // Load stats
+
+            // Load stats (populates `practiceDays`) before rendering calendar
             await this.loadStats();
+
+            // Generate calendar after stats so practice days are highlighted
+            this.generateCalendar();
             
             // Load recent songs
             await this.loadRecentSongs();
@@ -108,8 +109,14 @@ function dashboardApp() {
                 
                 let classes = 'calendar-day';
                 if (isFuture) classes += ' future';
-                if (isPracticeDay) classes += ' practice-day';
-                if (isToday) classes += ' today';
+
+                // If the user practiced on this day, use the practice highlight.
+                // This takes precedence over the 'today' highlight.
+                if (isPracticeDay) {
+                    classes += ' practice-day';
+                } else if (isToday) {
+                    classes += ' today';
+                }
                 
                 html += `<div class="${classes}">${day}</div>`;
             }
@@ -149,19 +156,28 @@ function dashboardApp() {
             
             // Load practice days for calendar highlighting
             const currentMonth = new Date();
-            const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).toISOString();
-            const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString();
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            
+            // Format dates in SQLite format (YYYY-MM-DD) for proper comparison
+            // Use first day of month and first day of next month (with <) to include entire last day
+            const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            const nextMonth = month === 11 ? 0 : month + 1;
+            const nextMonthYear = month === 11 ? year + 1 : year;
+            const monthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-01`;
             
             const practiceSessions = db.query(`
-                SELECT DISTINCT session_date
+                SELECT DISTINCT date(session_date) as practice_date
                 FROM practice_sessions
                 WHERE user_email_hash = ?
-                AND session_date >= ?
-                AND session_date <= ?
+                AND date(session_date) >= ?
+                AND date(session_date) < ?
             `, [this.currentUser.emailHash, monthStart, monthEnd]);
             
             this.practiceDays = practiceSessions.map(session => {
-                return new Date(session.session_date).getDate();
+                // Parse the date string (YYYY-MM-DD) and get the day number
+                const dateParts = session.practice_date.split('-');
+                return parseInt(dateParts[2], 10);
             });
         },
         
