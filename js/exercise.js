@@ -84,13 +84,22 @@ function exerciseApp() {
                 // Insert or update exercises from JSON
                 for (const exercise of exercises) {
                     // Check if exercise exists
-                    const existing = db.queryOne('SELECT created_at FROM exercises WHERE id = ?', [exercise.id]);
+                    const existing = db.queryOne('SELECT created_at, pdf_path FROM exercises WHERE id = ?', [exercise.id]);
                     const createdAt = existing ? existing.created_at : new Date().toISOString();
                     
                     db.execute(`
-                        INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    `, [exercise.id, exercise.title, exercise.description, exercise.difficulty, exercise.category, exercise.image_path || null, createdAt]);
+                        INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, pdf_path, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [
+                        exercise.id,
+                        exercise.title,
+                        exercise.description,
+                        exercise.difficulty,
+                        exercise.category,
+                        exercise.image_path || null,
+                        exercise.pdf_path || existing?.pdf_path || null,
+                        createdAt
+                    ]);
                 }
                 
                 console.log(`Synced ${exercises.length} exercises from JSON`);

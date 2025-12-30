@@ -127,6 +127,7 @@ class DatabaseManager {
                 difficulty TEXT NOT NULL,
                 category TEXT NOT NULL,
                 image_path TEXT,
+                pdf_path TEXT,
                 created_at TEXT NOT NULL
             )
         `);
@@ -172,6 +173,7 @@ class DatabaseManager {
                     difficulty TEXT NOT NULL,
                     category TEXT NOT NULL,
                     image_path TEXT,
+                    pdf_path TEXT,
                     created_at TEXT NOT NULL
                 )
             `);
@@ -205,6 +207,16 @@ class DatabaseManager {
             
             console.log('Migration complete: Exercises tables added');
         }
+
+        // Ensure pdf_path column exists on exercises table for older databases
+        try {
+            this.db.run(`
+                ALTER TABLE exercises ADD COLUMN pdf_path TEXT
+            `);
+        } catch (e) {
+            // Column might already exist, ignore error
+            console.log('pdf_path column might already exist');
+        }
     }
 
     /**
@@ -217,9 +229,17 @@ class DatabaseManager {
             
             for (const exercise of exercises) {
                 this.db.run(`
-                    INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                `, [exercise.id, exercise.title, exercise.description, exercise.difficulty, exercise.category, exercise.image_path || null]);
+                    INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, pdf_path, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `, [
+                    exercise.id,
+                    exercise.title,
+                    exercise.description,
+                    exercise.difficulty,
+                    exercise.category,
+                    exercise.image_path || null,
+                    exercise.pdf_path || null
+                ]);
             }
             
             // Save database after import
