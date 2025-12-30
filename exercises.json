@@ -181,6 +181,48 @@
     "difficulty": "advanced",
     "category": "quickfire",
     "pdf_path": "docs/20_Quickfire_Exercises-removed-split/20_Quickfire_Exercises-removed-020.pdf"
+  },
+  {
+    "id": "leonard-world-beat",
+    "title": "Hald Leonard: World Beat",
+    "description": "Exercise 15. A melody practice focusing on moving smoothly between the 1st and 2nd strings. Uses the notes E, F, G, B, C, and D.",
+    "difficulty": "beginner",
+    "category": "reading"
+  },
+  {
+    "id": "leonard-blues",
+    "title": "Hald Leonard: Blues",
+    "description": "Exercise 18. Introduces a basic blues melody using notes on the first three strings (G, B, E). Focuses on rhythm and simple phrasing.",
+    "difficulty": "beginner",
+    "category": "reading"
+  },
+  {
+    "id": "leonard-surf-rock",
+    "title": "Hald Leonard: Surf Rock",
+    "description": "Exercise 23. A fast-paced melody in the style of 60s surf music. Practices notes on the first three strings (G, B, E) with a driving rhythm.",
+    "difficulty": "beginner",
+    "category": "reading"
+  },
+  {
+    "id": "leonard-riffin",
+    "title": "Hald Leonard: Riffin'",
+    "description": "Exercise 44. A rock-style riff that combines melody playing with basic chords. Focuses on precision and rhythmic accuracy.",
+    "difficulty": "beginner",
+    "category": "reading"
+  },
+  {
+    "id": "leonard-bass-rock",
+    "title": "Hald Leonard: Bass Rock",
+    "description": "Exercise 56. Focuses on the lower register of the guitar, specifically notes on the 6th string (Low E, F, G). Builds right-hand picking control on thicker strings.",
+    "difficulty": "beginner",
+    "category": "reading"
+  },
+  {
+    "id": "leonard-when-the-saints",
+    "title": "Hald Leonard: When the Saints Go Marching In",
+    "description": "Exercise 45. A classic melody that introduces the concept of 'pickup notes' (incomplete measure at the start). Practices notes on the first three strings (G, B, E) and counting rhythms.",
+    "difficulty": "beginner",
+    "category": "reading"
   }
 ]
 
