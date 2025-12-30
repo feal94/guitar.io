@@ -86,10 +86,10 @@ function exercisesApp() {
                 FROM exercises e
                 LEFT JOIN exercise_progress ep ON e.id = ep.exercise_id 
                     AND ep.user_email_hash = ?
-                ORDER BY e.difficulty, e.title
             `, [this.currentUser.emailHash]);
-            
-            this.exercises = exercises.map(ex => ({
+
+            // Map progress and then sort by difficulty + base title (part before the colon)
+            const withProgress = exercises.map(ex => ({
                 ...ex,
                 progress: {
                     times_practiced: ex.times_practiced || 0,
@@ -97,6 +97,37 @@ function exercisesApp() {
                     completed: ex.completed || 0
                 }
             }));
+
+            withProgress.sort((a, b) => {
+                // First, sort by difficulty in the desired order
+                const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
+                const diffA = difficultyOrder[a.difficulty] ?? 99;
+                const diffB = difficultyOrder[b.difficulty] ?? 99;
+
+                if (diffA !== diffB) {
+                    return diffA - diffB;
+                }
+
+                // Then, sort by base title (before the colon, trimmed, case-insensitive)
+                const baseTitle = (title) => {
+                    if (!title) return '';
+                    const parts = title.split(':');
+                    return parts[0].trim().toLowerCase();
+                };
+
+                const titleA = baseTitle(a.title);
+                const titleB = baseTitle(b.title);
+
+                const cmp = titleA.localeCompare(titleB);
+                if (cmp !== 0) {
+                    return cmp;
+                }
+
+                // Fallback to full title to keep order stable
+                return (a.title || '').localeCompare(b.title || '');
+            });
+
+            this.exercises = withProgress;
         },
         
         /**
@@ -107,6 +138,20 @@ function exercisesApp() {
                 return this.exercises;
             }
             return this.exercises.filter(ex => ex.category === this.filterCategory);
+        },
+
+        /**
+         * List of categories derived from current exercises
+         */
+        get categories() {
+            const set = new Set();
+            for (const ex of this.exercises) {
+                if (ex.category) {
+                    set.add(ex.category);
+                }
+            }
+
+            return Array.from(set).sort((a, b) => a.localeCompare(b));
         },
         
         /**

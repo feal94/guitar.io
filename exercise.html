@@ -94,6 +94,21 @@
                         </div>
                     </div>
 
+                    <!-- Exercise PDF Viewer -->
+                    <div class="card mb-4" x-show="!exercise.image_path && exercise.pdf_path">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Exercise PDF</h5>
+                            <div class="ratio ratio-4x3 mb-3">
+                                <iframe :src="exercise.pdf_path"
+                                        title="Exercise PDF"
+                                        style="border: 1px solid #dee2e6; border-radius: 0.25rem;"></iframe>
+                            </div>
+                            <a :href="exercise.pdf_path" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                Open PDF in new tab
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Practice Controls -->
                     <div class="card mb-4" x-show="!isTimerRunning">
                         <div class="card-header bg-white">
