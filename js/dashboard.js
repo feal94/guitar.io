@@ -9,7 +9,7 @@ function dashboardApp() {
         displayName: '',
         currentUser: null,
         stats: {
-            hoursLastMonth: 0,
+            minutesThisMonth: 0,
             songsPracticed: 0,
             totalSessions: 0
         },
@@ -129,42 +129,38 @@ function dashboardApp() {
          * Load practice stats from database
          */
         async loadStats() {
-            // Get stats for last month
-            const lastMonth = new Date();
-            lastMonth.setMonth(lastMonth.getMonth() - 1);
-            const lastMonthStart = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1).toISOString();
-            const lastMonthEnd = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0).toISOString();
-            
-            // Query practice sessions
-            const sessions = db.query(`
-                SELECT 
-                    COUNT(*) as total_sessions,
-                    SUM(duration_minutes) as total_minutes,
-                    COUNT(DISTINCT song_id) as unique_songs
-                FROM practice_sessions
-                WHERE user_email_hash = ?
-                AND session_date >= ?
-                AND session_date <= ?
-            `, [this.currentUser.emailHash, lastMonthStart, lastMonthEnd]);
-            
-            if (sessions.length > 0 && sessions[0].total_sessions > 0) {
-                const stats = sessions[0];
-                this.stats.totalSessions = stats.total_sessions || 0;
-                this.stats.hoursLastMonth = Math.round((stats.total_minutes || 0) / 60);
-                this.stats.songsPracticed = stats.unique_songs || 0;
-            }
-            
-            // Load practice days for calendar highlighting
+            // Get stats for this month
             const currentMonth = new Date();
             const year = currentMonth.getFullYear();
             const month = currentMonth.getMonth();
             
             // Format dates in SQLite format (YYYY-MM-DD) for proper comparison
-            // Use first day of month and first day of next month (with <) to include entire last day
             const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
             const nextMonth = month === 11 ? 0 : month + 1;
             const nextMonthYear = month === 11 ? year + 1 : year;
             const monthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-01`;
+            
+            // Query practice sessions for this month
+            const sessions = db.query(`
+                SELECT 
+                    COUNT(*) as total_sessions,
+                    COALESCE(SUM(duration_minutes), 0) as total_minutes,
+                    COUNT(DISTINCT song_id) as unique_songs
+                FROM practice_sessions
+                WHERE user_email_hash = ?
+                AND date(session_date) >= ?
+                AND date(session_date) < ?
+            `, [this.currentUser.emailHash, monthStart, monthEnd]);
+            
+            console.log(JSON.stringify(sessions));
+
+            if (sessions.length > 0) {
+                const stats = sessions[0];
+                this.stats.totalSessions = stats.total_sessions || 0;
+                this.stats.minutesThisMonth = stats.total_minutes || 0;
+                this.stats.songsPracticed = stats.unique_songs || 0;
+            }
+            
             
             const practiceSessions = db.query(`
                 SELECT DISTINCT date(session_date) as practice_date
