@@ -62,21 +62,16 @@
                         All Exercises
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ 'active': filterCategory === 'scales' }" href="#" @click.prevent="filterCategory = 'scales'">
-                        Scales
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ 'active': filterCategory === 'chords' }" href="#" @click.prevent="filterCategory = 'chords'">
-                        Chords
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" :class="{ 'active': filterCategory === 'technique' }" href="#" @click.prevent="filterCategory = 'technique'">
-                        Technique
-                    </a>
-                </li>
+                <template x-for="category in categories" :key="category">
+                    <li class="nav-item">
+                        <a class="nav-link"
+                           href="#"
+                           :class="{ 'active': filterCategory === category }"
+                           @click.prevent="filterCategory = category">
+                            <span x-text="category.charAt(0).toUpperCase() + category.slice(1)"></span>
+                        </a>
+                    </li>
+                </template>
             </ul>
 
             <!-- Exercises Grid -->
