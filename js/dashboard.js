@@ -11,64 +11,50 @@ function dashboardApp() {
         stats: {
             minutesThisMonth: 0,
             songsPracticed: 0,
-            totalSessions: 0
+            totalSessions: 0,
         },
         recentSongs: [],
         userRoutines: [],
         currentMonthYear: '',
         calendarHtml: '',
         practiceDays: [],
-        
+
         /**
          * Initialize dashboard
          */
         async init() {
-            // Check authentication
-            const userData = localStorage.getItem('guitar_io_current_user');
-            if (!userData) {
+            const user = await getSessionUser();
+            if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
-            
-            this.currentUser = JSON.parse(userData);
-            this.userEmail = this.currentUser.email;
-            
 
-            // Initialize database
-            await db.initialize();
+            this.currentUser = user;
+            this.userEmail = user.email;
 
-            // Load user data
             await this.loadUserData();
 
-            // Load stats (populates `practiceDays`) before rendering calendar
             await this.loadStats();
 
-            // Generate calendar after stats so practice days are highlighted
             this.generateCalendar();
-            
-            // Load recent songs
+
             await this.loadRecentSongs();
-            
-            // Load user routines
+
             await this.loadUserRoutines();
         },
-        
+
         /**
-         * Load user data from database
+         * Load user display name from Supabase profiles
          */
         async loadUserData() {
-            const user = db.queryOne(
-                'SELECT display_name FROM users WHERE email_hash = ?',
-                [this.currentUser.emailHash]
-            );
-            
-            if (user && user.display_name) {
-                this.displayName = user.display_name;
+            const name = await fetchProfileDisplayName(this.currentUser.userId);
+            if (name) {
+                this.displayName = name;
             } else {
                 this.displayName = this.userEmail;
             }
         },
-        
+
         /**
          * Generate calendar for current month
          */
@@ -76,143 +62,107 @@ function dashboardApp() {
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth();
-            
-            // Set month/year display
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                              'July', 'August', 'September', 'October', 'November', 'December'];
+
+            const monthNames = [
+                'January',
+                'February',
+                'March',
+                'April',
+                'May',
+                'June',
+                'July',
+                'August',
+                'September',
+                'October',
+                'November',
+                'December',
+            ];
             this.currentMonthYear = `${monthNames[month]} ${year}`;
-            
-            // Get first day of month and number of days
+
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const today = now.getDate();
-            
-            // Build calendar HTML
+
             let html = '<div class="calendar-days">';
-            
-            // Day headers
+
             const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            dayHeaders.forEach(day => {
+            dayHeaders.forEach((day) => {
                 html += `<div class="calendar-day-header">${day}</div>`;
             });
-            
-            // Empty cells before first day
+
             for (let i = 0; i < firstDay; i++) {
                 html += '<div class="calendar-day"></div>';
             }
-            
-            // Days of month
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const isFuture = day > today;
                 const isPracticeDay = this.practiceDays.includes(day);
                 const isToday = day === today;
-                
-                let classes = 'calendar-day';
-                if (isFuture) classes += ' future';
 
-                // If the user practiced on this day, use the practice highlight.
-                // This takes precedence over the 'today' highlight.
+                let classes = 'calendar-day';
+                if (isFuture) {
+                    classes += ' future';
+                }
+
                 if (isPracticeDay) {
                     classes += ' practice-day';
                 } else if (isToday) {
                     classes += ' today';
                 }
-                
+
                 html += `<div class="${classes}">${day}</div>`;
             }
-            
+
             html += '</div>';
             this.calendarHtml = html;
         },
-        
+
         /**
-         * Load practice stats from database
+         * Load practice stats from Supabase
          */
         async loadStats() {
-            // Get stats for this month
             const currentMonth = new Date();
             const year = currentMonth.getFullYear();
             const month = currentMonth.getMonth();
-            
-            // Format dates in SQLite format (YYYY-MM-DD) for proper comparison
+
             const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
             const nextMonth = month === 11 ? 0 : month + 1;
             const nextMonthYear = month === 11 ? year + 1 : year;
             const monthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-01`;
-            
-            // Query practice sessions for this month
-            const sessions = db.query(`
-                SELECT 
-                    COUNT(*) as total_sessions,
-                    COALESCE(SUM(duration_minutes), 0) as total_minutes,
-                    COUNT(DISTINCT song_id) as unique_songs
-                FROM practice_sessions
-                WHERE user_email_hash = ?
-                AND date(session_date) >= ?
-                AND date(session_date) < ?
-            `, [this.currentUser.emailHash, monthStart, monthEnd]);
-            
-            console.log(JSON.stringify(sessions));
 
-            if (sessions.length > 0) {
-                const stats = sessions[0];
-                this.stats.totalSessions = stats.total_sessions || 0;
-                this.stats.minutesThisMonth = stats.total_minutes || 0;
-                this.stats.songsPracticed = stats.unique_songs || 0;
-            }
-            
-            
-            const practiceSessions = db.query(`
-                SELECT DISTINCT date(session_date) as practice_date
-                FROM practice_sessions
-                WHERE user_email_hash = ?
-                AND date(session_date) >= ?
-                AND date(session_date) < ?
-            `, [this.currentUser.emailHash, monthStart, monthEnd]);
-            
-            this.practiceDays = practiceSessions.map(session => {
-                // Parse the date string (YYYY-MM-DD) and get the day number
-                const dateParts = session.practice_date.split('-');
-                return parseInt(dateParts[2], 10);
-            });
+            const rows = await fetchPracticeSessionsInRange(
+                this.currentUser.userId,
+                monthStart,
+                monthEnd
+            );
+            const agg = aggregateMonthlyStats(rows);
+
+            this.stats.totalSessions = agg.totalSessions;
+            this.stats.minutesThisMonth = agg.totalMinutes;
+            this.stats.songsPracticed = agg.uniqueSongs;
+
+            this.practiceDays = practiceDaysOfMonthFromStrings(agg.practiceDateStrings, year, month);
         },
-        
+
         /**
-         * Load recent songs from database
+         * Load recent songs from Supabase
          */
         async loadRecentSongs() {
-            const songs = db.query(`
-                SELECT id, title, artist, last_practiced
-                FROM songs
-                WHERE user_email_hash = ?
-                ORDER BY last_practiced DESC
-                LIMIT 5
-            `, [this.currentUser.emailHash]);
-            
-            this.recentSongs = songs;
+            this.recentSongs = await fetchRecentSongs(this.currentUser.userId, 5);
         },
-        
+
         /**
-         * Load user routines from database
+         * Load user routines from Supabase
          */
         async loadUserRoutines() {
-            const routines = db.query(`
-                SELECT id, name, duration_minutes
-                FROM routines
-                WHERE user_email_hash = ?
-                ORDER BY created_at DESC
-            `, [this.currentUser.emailHash]);
-            
-            this.userRoutines = routines;
+            this.userRoutines = await fetchUserRoutines(this.currentUser.userId);
         },
-        
+
         /**
          * Logout user
          */
-        logout() {
-            localStorage.removeItem('guitar_io_current_user');
-            window.location.href = 'index.html';
-        }
+        async logout() {
+            await window.logout();
+        },
     };
 }
-

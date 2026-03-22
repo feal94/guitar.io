@@ -1,27 +1,4 @@
-// guitar.io - Authentication Module with Alpine.js and SQL.js
-
-/**
- * Hash a string using SHA-256
- * @param {string} message - The string to hash
- * @returns {Promise<string>} Hex string of the hash
- */
-async function sha256Hash(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
-
-/**
- * Validate email format
- * @param {string} email - Email to validate
- * @returns {boolean} True if valid email format
- */
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
+// guitar.io - Authentication with Supabase Auth and Alpine.js
 
 /**
  * Alpine.js component for login form
@@ -32,77 +9,54 @@ function loginForm() {
         password: '',
         errorMessage: '',
         isLoading: false,
-        
-        /**
-         * Handle login form submission
-         */
+
         async handleLogin() {
-            // Clear previous errors
             this.errorMessage = '';
-            
-            // Validate inputs
+
             if (!this.username || !this.password) {
                 this.errorMessage = 'Please enter both email and password.';
                 return;
             }
-            
-            // Validate email format
+
             if (!isValidEmail(this.username)) {
                 this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
-            
-            // Show loading state
+
             this.isLoading = true;
-            
+
             try {
-                // Ensure database is initialized
-                await db.initialize();
-                
-                // Hash the email to use as lookup key
-                const emailHash = await sha256Hash(this.username.toLowerCase().trim());
-                
-                // Query user from database
-                const user = db.queryOne(
-                    'SELECT * FROM users WHERE email_hash = ?',
-                    [emailHash]
-                );
-                
-                // Hash the entered password
-                const passwordHash = await sha256Hash(this.password);
-                
-                // Check if user exists and password matches
-                // Use same error message for both cases to prevent user enumeration
-                if (!user || user.password_hash !== passwordHash) {
-                    this.errorMessage = 'Email/password combination not found. Please check your credentials.';
+                await waitForSupabase();
+                const supabase = window.guitarIoSupabase;
+                if (!supabase) {
+                    this.errorMessage =
+                        'Sign-in is not configured. Add your Supabase URL and anon key in js/supabase-config.js.';
                     return;
                 }
-                
-                // Update last login time
-                db.execute(
-                    'UPDATE users SET last_login = datetime("now") WHERE email_hash = ?',
-                    [emailHash]
-                );
-                
-                // Successful login - store session with original (unhashed) email for display
-                const currentUser = {
-                    email: this.username.toLowerCase().trim(),
-                    emailHash: emailHash,
-                    loginTime: new Date().toISOString()
-                };
-                
-                localStorage.setItem('guitar_io_current_user', JSON.stringify(currentUser));
-                
-                // Redirect to dashboard
+
+                const email = this.username.toLowerCase().trim();
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password: this.password,
+                });
+
+                if (error) {
+                    this.errorMessage =
+                        error.message ||
+                        'Email/password combination not found. Please check your credentials.';
+                    return;
+                }
+
+                localStorage.removeItem('guitar_io_current_user');
+
                 window.location.href = 'dashboard.html';
-                
             } catch (error) {
                 console.error('Login error:', error);
                 this.errorMessage = 'An error occurred. Please try again.';
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
     };
 }
 
@@ -117,93 +71,77 @@ function registerForm() {
         errorMessage: '',
         successMessage: '',
         isLoading: false,
-        
-        /**
-         * Handle registration form submission
-         */
+
         async handleRegister() {
-            // Clear previous messages
             this.errorMessage = '';
             this.successMessage = '';
-            
-            // Validate inputs
+
             if (!this.username || !this.password || !this.confirmPassword) {
                 this.errorMessage = 'Please fill in all fields.';
                 return;
             }
-            
-            // Validate email format
+
             if (!isValidEmail(this.username)) {
                 this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
-            
-            // Validate password length
+
             if (this.password.length < 8) {
                 this.errorMessage = 'Password must be at least 8 characters long.';
                 return;
             }
-            
-            // Check password strength (at least one number and one letter)
+
             const hasNumber = /\d/.test(this.password);
             const hasLetter = /[a-zA-Z]/.test(this.password);
             if (!hasNumber || !hasLetter) {
                 this.errorMessage = 'Password must contain at least one letter and one number.';
                 return;
             }
-            
-            // Check if passwords match
+
             if (this.password !== this.confirmPassword) {
                 this.errorMessage = 'Passwords do not match.';
                 return;
             }
-            
-            // Show loading state
+
             this.isLoading = true;
-            
+
             try {
-                // Ensure database is initialized
-                await db.initialize();
-                
-                // Normalize email
-                const email = this.username.toLowerCase().trim();
-                
-                // Hash the email and password
-                const emailHash = await sha256Hash(email);
-                const passwordHash = await sha256Hash(this.password);
-                
-                // Check if email already exists (by hash)
-                const existingUser = db.queryOne(
-                    'SELECT email_hash FROM users WHERE email_hash = ?',
-                    [emailHash]
-                );
-                
-                if (existingUser) {
-                    this.errorMessage = 'This email is already registered. Please login instead.';
+                await waitForSupabase();
+                const supabase = window.guitarIoSupabase;
+                if (!supabase) {
+                    this.errorMessage =
+                        'Registration is not configured. Add your Supabase URL and anon key in js/supabase-config.js.';
                     return;
                 }
-                
-                // Insert new user into database
-                db.execute(
-                    'INSERT INTO users (email_hash, password_hash, created_at) VALUES (?, ?, datetime("now"))',
-                    [emailHash, passwordHash]
-                );
-                
-                // Show success message
-                this.successMessage = 'Account created successfully! Redirecting to login...';
-                
-                // Redirect to login page after 2 seconds
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
-                
+
+                const email = this.username.toLowerCase().trim();
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password: this.password,
+                });
+
+                if (error) {
+                    this.errorMessage = error.message || 'Could not create account. Please try again.';
+                    return;
+                }
+
+                if (data.session) {
+                    this.successMessage = 'Account created! Redirecting...';
+                    localStorage.removeItem('guitar_io_current_user');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 800);
+                } else {
+                    this.successMessage =
+                        'Check your email to confirm your account, then you can sign in.';
+                }
             } catch (error) {
                 console.error('Registration error:', error);
                 this.errorMessage = 'An error occurred. Please try again.';
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
     };
 }
 
@@ -216,68 +154,155 @@ function recoverForm() {
         errorMessage: '',
         successMessage: '',
         isLoading: false,
-        
-        /**
-         * Handle password recovery form submission
-         */
+
         async handleRecover() {
-            // Clear previous messages
             this.errorMessage = '';
             this.successMessage = '';
-            
-            // Validate input
+
             if (!this.username) {
                 this.errorMessage = 'Please enter your email address.';
                 return;
             }
-            
-            // Validate email format
+
             if (!isValidEmail(this.username)) {
                 this.errorMessage = 'Please enter a valid email address.';
                 return;
             }
-            
-            // Show loading state
+
             this.isLoading = true;
-            
+
             try {
-                // Ensure database is initialized
-                await db.initialize();
-                
-                // Normalize and hash email
-                const email = this.username.toLowerCase().trim();
-                const emailHash = await sha256Hash(email);
-                
-                // Check if email exists (by hash)
-                const user = db.queryOne(
-                    'SELECT email_hash FROM users WHERE email_hash = ?',
-                    [emailHash]
-                );
-                
-                if (!user) {
-                    this.errorMessage = 'Email not found. Please check and try again.';
+                await waitForSupabase();
+                const supabase = window.guitarIoSupabase;
+                if (!supabase) {
+                    this.errorMessage =
+                        'Password recovery is not configured. Add your Supabase URL and anon key in js/supabase-config.js.';
                     return;
                 }
-                
-                // In a real app with a backend, this would:
-                // 1. Generate a secure recovery token
-                // 2. Store it temporarily (with expiration)
-                // 3. Send an email with a recovery link
-                //
-                // For this static site demo, we'll simulate success
-                this.successMessage = `A password recovery link has been sent to ${email}. Please check your email.`;
-                
-                // Note: Since we're storing hashed passwords, we cannot retrieve them
-                // In a real system, the user would click a link to reset their password
-                
-                console.log('Password recovery requested for:', email);
-                
+
+                const email = this.username.toLowerCase().trim();
+                const redirectTo = new URL('reset-password.html', window.location.href).href;
+
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo,
+                });
+
+                if (error) {
+                    this.errorMessage = error.message || 'Could not send recovery email.';
+                    return;
+                }
+
+                this.successMessage =
+                    'If an account exists for that email, you will receive a link to reset your password.';
             } catch (error) {
                 console.error('Recovery error:', error);
                 this.errorMessage = 'An error occurred. Please try again.';
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
+    };
+}
+
+/**
+ * Alpine.js — set new password after email link (reset-password.html)
+ */
+function resetPasswordForm() {
+    return {
+        password: '',
+        confirmPassword: '',
+        errorMessage: '',
+        successMessage: '',
+        isLoading: false,
+        linkInvalid: false,
+        sessionChecked: false,
+
+        async init() {
+            await waitForSupabase();
+            const supabase = window.guitarIoSupabase;
+            if (!supabase) {
+                this.linkInvalid = true;
+                this.errorMessage =
+                    'Supabase is not configured. Add your URL and anon key in js/supabase-config.js.';
+                this.sessionChecked = true;
+                return;
+            }
+
+            let session = null;
+            for (let i = 0; i < 8; i++) {
+                const {
+                    data: { session: s },
+                } = await supabase.auth.getSession();
+                session = s;
+                if (session) {
+                    break;
+                }
+                await new Promise((r) => setTimeout(r, 100));
+            }
+
+            if (!session) {
+                this.linkInvalid = true;
+                this.errorMessage =
+                    'This link is invalid or has expired. Use “Forgot password” on the login page to get a new one.';
+            }
+            this.sessionChecked = true;
+        },
+
+        async handleSubmit() {
+            this.errorMessage = '';
+            this.successMessage = '';
+
+            if (!this.password || !this.confirmPassword) {
+                this.errorMessage = 'Please fill in both fields.';
+                return;
+            }
+
+            if (this.password.length < 8) {
+                this.errorMessage = 'Password must be at least 8 characters long.';
+                return;
+            }
+
+            const hasNumber = /\d/.test(this.password);
+            const hasLetter = /[a-zA-Z]/.test(this.password);
+            if (!hasNumber || !hasLetter) {
+                this.errorMessage = 'Password must contain at least one letter and one number.';
+                return;
+            }
+
+            if (this.password !== this.confirmPassword) {
+                this.errorMessage = 'Passwords do not match.';
+                return;
+            }
+
+            this.isLoading = true;
+
+            try {
+                await waitForSupabase();
+                const supabase = window.guitarIoSupabase;
+                if (!supabase) {
+                    this.errorMessage = 'Sign-in is not configured.';
+                    return;
+                }
+
+                const { error } = await supabase.auth.updateUser({
+                    password: this.password,
+                });
+
+                if (error) {
+                    this.errorMessage = error.message || 'Could not update password.';
+                    return;
+                }
+
+                this.successMessage = 'Password updated. Redirecting to the dashboard...';
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1200);
+            } catch (error) {
+                console.error('Password reset error:', error);
+                this.errorMessage = 'An error occurred. Please try again.';
+            } finally {
+                this.isLoading = false;
+            }
+        },
     };
 }

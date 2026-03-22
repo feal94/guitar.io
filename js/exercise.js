@@ -32,22 +32,15 @@ function exerciseApp() {
          * Initialize exercise page
          */
         async init() {
-            // Check authentication
-            const userData = localStorage.getItem('guitar_io_current_user');
-            if (!userData) {
+            const user = await getSessionUser();
+            if (!user) {
                 window.location.href = 'index.html';
                 return;
             }
-            
-            this.currentUser = JSON.parse(userData);
-            this.userEmail = this.currentUser.email;
-            
-            // Initialize database
-            await db.initialize();
-            
-            // Sync exercises from JSON file
-            await this.syncExercisesFromJSON();
-            
+
+            this.currentUser = user;
+            this.userEmail = user.email;
+
             // Get exercise ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const exerciseId = urlParams.get('id');
@@ -62,77 +55,37 @@ function exerciseApp() {
         },
         
         /**
-         * Sync exercises from JSON file to database
-         */
-        async syncExercisesFromJSON() {
-            try {
-                const response = await fetch('exercises.json');
-                const exercises = await response.json();
-                
-                // Get list of IDs from JSON
-                const jsonIds = exercises.map(ex => ex.id);
-                
-                // Delete exercises that are no longer in JSON
-                const existingExercises = db.query('SELECT id FROM exercises');
-                for (const existing of existingExercises) {
-                    if (!jsonIds.includes(existing.id)) {
-                        db.execute('DELETE FROM exercises WHERE id = ?', [existing.id]);
-                        console.log(`Deleted exercise: ${existing.id}`);
-                    }
-                }
-                
-                // Insert or update exercises from JSON
-                for (const exercise of exercises) {
-                    // Check if exercise exists
-                    const existing = db.queryOne('SELECT created_at, pdf_path FROM exercises WHERE id = ?', [exercise.id]);
-                    const createdAt = existing ? existing.created_at : new Date().toISOString();
-                    
-                    db.execute(`
-                        INSERT OR REPLACE INTO exercises (id, title, description, difficulty, category, image_path, pdf_path, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    `, [
-                        exercise.id,
-                        exercise.title,
-                        exercise.description,
-                        exercise.difficulty,
-                        exercise.category,
-                        exercise.image_path || null,
-                        exercise.pdf_path || existing?.pdf_path || null,
-                        createdAt
-                    ]);
-                }
-                
-                console.log(`Synced ${exercises.length} exercises from JSON`);
-            } catch (error) {
-                console.error('Error syncing exercises:', error);
-            }
-        },
-        
-        /**
          * Load exercise details and user progress
          */
         async loadExercise(exerciseId) {
-            // Get exercise details
-            const exercise = db.queryOne(`
-                SELECT * FROM exercises WHERE id = ?
-            `, [exerciseId]);
-            
+            const catalog = await fetchExercisesCatalog();
+            const exercise = catalog.find((ex) => ex.id === exerciseId);
+
             if (!exercise) {
                 alert('Exercise not found');
                 window.location.href = 'exercises.html';
                 return;
             }
-            
+
             this.exercise = exercise;
-            
-            // Get user's progress for this exercise
-            const progress = db.queryOne(`
-                SELECT * FROM exercise_progress 
-                WHERE user_email_hash = ? AND exercise_id = ?
-            `, [this.currentUser.emailHash, exerciseId]);
-            
-            if (progress) {
-                this.progress = progress;
+
+            const progressRow = await fetchSingleExerciseProgress(
+                this.currentUser.userId,
+                exerciseId
+            );
+
+            if (progressRow) {
+                this.progress = {
+                    times_practiced: progressRow.times_practiced ?? 0,
+                    last_practiced: progressRow.last_practiced,
+                    completed: progressRow.completed ? 1 : 0,
+                };
+            } else {
+                this.progress = {
+                    times_practiced: 0,
+                    last_practiced: null,
+                    completed: 0,
+                };
             }
         },
         
@@ -404,39 +357,13 @@ function exerciseApp() {
          * Record practice session in database
          */
         async recordPracticeSession() {
-            // Update or create exercise progress
-            const existing = db.queryOne(`
-                SELECT id FROM exercise_progress 
-                WHERE user_email_hash = ? AND exercise_id = ?
-            `, [this.currentUser.emailHash, this.exercise.id]);
-            
-            if (existing) {
-                // Update existing progress
-                db.execute(`
-                    UPDATE exercise_progress 
-                    SET times_practiced = times_practiced + 1,
-                        last_practiced = datetime('now'),
-                        completed = 1
-                    WHERE user_email_hash = ? AND exercise_id = ?
-                `, [this.currentUser.emailHash, this.exercise.id]);
-            } else {
-                // Create new progress record
-                db.execute(`
-                    INSERT INTO exercise_progress (user_email_hash, exercise_id, times_practiced, last_practiced, completed)
-                    VALUES (?, ?, 1, datetime('now'), 1)
-                `, [this.currentUser.emailHash, this.exercise.id]);
-            }
-            
-            // Record in practice sessions
-            db.execute(`
-                INSERT INTO practice_sessions (user_email_hash, session_date, duration_minutes, exercise_id, created_at)
-                VALUES (?, datetime('now'), ?, ?, datetime('now'))
-            `, [this.currentUser.emailHash, this.practiceTime, this.exercise.id]);
-            
-            // Reload progress
+            await recordExercisePracticeSession(
+                this.currentUser.userId,
+                this.exercise.id,
+                this.practiceTime
+            );
+
             await this.loadExercise(this.exercise.id);
-            
-            console.log('Practice session recorded');
         },
         
         /**
@@ -458,9 +385,8 @@ function exerciseApp() {
         /**
          * Logout user
          */
-        logout() {
-            localStorage.removeItem('guitar_io_current_user');
-            window.location.href = 'index.html';
+        async logout() {
+            await window.logout();
         }
     };
 }

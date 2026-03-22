@@ -1,5 +1,10 @@
 /* Custom styles for guitar.io */
 
+/* Hide Alpine-bound regions until Alpine removes this attribute */
+[x-cloak] {
+    display: none !important;
+}
+
 :root {
     --primary-color: #0d6efd;
     --secondary-color: #6c757d;
@@ -34,6 +39,18 @@ a {
 
 a:hover {
     color: var(--primary-color) !important;
+}
+
+/* Primary buttons: explicit contrast (fixes empty/hidden label glitches before Alpine runs) */
+.btn-primary {
+    color: #fff;
+    background-color: var(--bs-primary, #0d6efd);
+    border-color: var(--bs-primary, #0d6efd);
+}
+
+.btn-primary:disabled {
+    color: #fff;
+    opacity: 0.65;
 }
 
 /* Responsive adjustments */
