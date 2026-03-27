@@ -71,6 +71,23 @@
                 </template>
             </ul>
 
+            <!-- Search -->
+            <div class="row mb-4">
+                <div class="col-12 col-lg-6">
+                    <label for="exerciseSearch" class="form-label">Search exercises</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input
+                            id="exerciseSearch"
+                            type="text"
+                            class="form-control"
+                            placeholder="Search by title, description, or category"
+                            x-model="searchQuery"
+                        >
+                    </div>
+                </div>
+            </div>
+
             <!-- Exercises Grid -->
             <div class="row g-4">
                 <template x-for="exercise in filteredExercises" :key="exercise.id">

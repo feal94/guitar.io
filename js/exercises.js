@@ -9,6 +9,7 @@ function exercisesApp() {
         currentUser: null,
         exercises: [],
         filterCategory: 'all',
+        searchQuery: '',
 
         /**
          * Initialize exercises page
@@ -76,10 +77,22 @@ function exercisesApp() {
          * Get filtered exercises based on category
          */
         get filteredExercises() {
-            if (this.filterCategory === 'all') {
-                return this.exercises;
-            }
-            return this.exercises.filter((ex) => ex.category === this.filterCategory);
+            const query = this.searchQuery.trim().toLowerCase();
+            return this.exercises.filter((ex) => {
+                const matchesCategory =
+                    this.filterCategory === 'all' || ex.category === this.filterCategory;
+
+                if (!matchesCategory) {
+                    return false;
+                }
+
+                if (!query) {
+                    return true;
+                }
+
+                const haystack = `${ex.title || ''} ${ex.description || ''} ${ex.category || ''}`.toLowerCase();
+                return haystack.includes(query);
+            });
         },
 
         /**
