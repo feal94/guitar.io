@@ -95,3 +95,5 @@ async function getCurrentUser() {
 }
 
 window.logout = logout;
+window.waitForSupabase = waitForSupabase;
+window.getSessionUser = getSessionUser;
