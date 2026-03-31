@@ -242,3 +242,36 @@ async function recordExercisePracticeSession(userId, exerciseId, durationMinutes
         throw insErr;
     }
 }
+
+async function recordSongPracticeSession(userId, songId, durationMinutes) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        throw new Error('Supabase is not configured');
+    }
+
+    const nowIso = new Date().toISOString();
+
+    const { error: upErr } = await supabase
+        .from('songs')
+        .update({ last_practiced: nowIso })
+        .eq('user_id', userId)
+        .eq('id', songId);
+
+    if (upErr) {
+        console.error('recordSongPracticeSession update song', upErr);
+        throw upErr;
+    }
+
+    const { error: insErr } = await supabase.from('practice_sessions').insert({
+        user_id: userId,
+        session_date: todayLocalDateString(),
+        duration_minutes: durationMinutes,
+        song_id: songId,
+        created_at: nowIso,
+    });
+
+    if (insErr) {
+        console.error('recordSongPracticeSession insert session', insErr);
+        throw insErr;
+    }
+}
