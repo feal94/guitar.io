@@ -60,7 +60,7 @@
                         <div class="card-body p-0">
                             <div class="list-group list-group-flush">
                                 <template x-for="song in recentSongs" :key="song.id">
-                                    <a href="#" class="list-group-item list-group-item-action" @click.prevent="alert('Song details - Coming soon')">
+                                    <a :href="'song.html?id=' + song.id" class="list-group-item list-group-item-action">
                                         <div class="fw-bold" x-text="song.title"></div>
                                         <small class="text-muted" x-text="song.artist"></small>
                                     </a>
