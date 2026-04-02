@@ -34,7 +34,7 @@ document.addEventListener('alpine:init', () => {
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
-                this.songs = data;
+                this.songs = (data || []).filter((row) => row != null);
                 this.filteredSongs = this.songs;
             } catch (error) {
                 console.error('Error fetching songs:', error.message);
@@ -57,6 +57,13 @@ document.addEventListener('alpine:init', () => {
                     (song.artist && song.artist.toLowerCase().includes(query))
                 );
             });
+        },
+
+        /** Non-empty tab URL from Supabase (avoids flaky x-show inside x-for) */
+        hasExternalTabUrl(song) {
+            if (!song) return false;
+            const u = song.song_url;
+            return typeof u === 'string' && u.trim().length > 0;
         },
 
         async logout() {
