@@ -14,7 +14,7 @@
     <div x-data="dashboardApp" class="dashboard-container">
         <div data-nav-include="dashboard"></div>
         <!-- Main Content -->
-        <div class="container-fluid mt-4">
+        <div class="container-fluid mt-4" x-show="!isLoading" x-cloak>
             <div class="row">
                 <!-- Left Sidebar -->
                 <div class="col-lg-2 mb-4">
@@ -170,6 +170,13 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="container-fluid mt-4" x-show="isLoading">
+            <div class="app-loading-block text-center" role="status" aria-live="polite" aria-busy="true">
+                <div class="spinner-border text-primary" aria-hidden="true"></div>
+                <p class="text-muted small mb-0">Loading your practice data…</p>
             </div>
         </div>
     </div>

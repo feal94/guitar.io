@@ -218,9 +218,10 @@
             <a href="routines.html" class="btn btn-primary">Back to routines</a>
         </div>
 
-        <div class="container mt-5 text-center" x-show="isLoading">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+        <div class="container mt-4" x-show="isLoading">
+            <div class="app-loading-block text-center" role="status" aria-live="polite" aria-busy="true">
+                <div class="spinner-border text-primary" aria-hidden="true"></div>
+                <p class="text-muted small mb-0">Loading this routine…</p>
             </div>
         </div>
     </div>

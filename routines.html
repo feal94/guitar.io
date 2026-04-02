@@ -26,7 +26,7 @@
                 </div>
             </div>
 
-            <div class="row mb-4">
+            <div class="row mb-4" x-show="!isLoading" x-cloak>
                 <div class="col-12 col-lg-6">
                     <label for="routineSearch" class="form-label">Search routines</label>
                     <div class="input-group">
@@ -42,7 +42,7 @@
                 </div>
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4" x-show="!isLoading" x-cloak>
                 <template x-for="r in filteredRoutines" :key="r.id">
                     <div class="col-md-6 col-lg-4">
                         <div class="card song-card h-100">
@@ -72,10 +72,9 @@
                 <a href="add-routine.html" class="btn btn-primary">Create your first routine</a>
             </div>
 
-            <div class="text-center py-5" x-show="isLoading">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+            <div class="app-loading-block text-center" x-show="isLoading" role="status" aria-live="polite" aria-busy="true">
+                <div class="spinner-border text-primary" aria-hidden="true"></div>
+                <p class="text-muted small mb-0">Loading your routines…</p>
             </div>
         </div>
     </div>

@@ -23,7 +23,7 @@
             </div>
 
             <!-- Filter Tabs -->
-            <ul class="nav nav-tabs mb-4">
+            <ul class="nav nav-tabs mb-4" x-show="!isLoading" x-cloak>
                 <li class="nav-item">
                     <a class="nav-link" :class="{ 'active': filterCategory === 'all' }" href="#" @click.prevent="filterCategory = 'all'">
                         All Exercises
@@ -42,7 +42,7 @@
             </ul>
 
             <!-- Search -->
-            <div class="row mb-4">
+            <div class="row mb-4" x-show="!isLoading" x-cloak>
                 <div class="col-12 col-lg-6">
                     <label for="exerciseSearch" class="form-label">Search exercises</label>
                     <div class="input-group">
@@ -59,7 +59,7 @@
             </div>
 
             <!-- Exercises Grid -->
-            <div class="row g-4">
+            <div class="row g-4" x-show="!isLoading" x-cloak>
                 <template x-for="exercise in filteredExercises" :key="exercise.id">
                     <div class="col-md-6 col-lg-4">
                         <div class="card exercise-card h-100">
@@ -90,6 +90,11 @@
                         </div>
                     </div>
                 </template>
+            </div>
+
+            <div class="app-loading-block text-center" x-show="isLoading" role="status" aria-live="polite" aria-busy="true">
+                <div class="spinner-border text-primary" aria-hidden="true"></div>
+                <p class="text-muted small mb-0">Loading exercises and your progress…</p>
             </div>
         </div>
     </div>

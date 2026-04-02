@@ -7,6 +7,7 @@ document.addEventListener('alpine:init', () => {
         exercises: [],
         filterCategory: 'all',
         searchQuery: '',
+        isLoading: true,
 
         /**
          * Initialize exercises page
@@ -28,46 +29,51 @@ document.addEventListener('alpine:init', () => {
          * Load catalog from exercises.json and merge progress from Supabase
          */
         async loadExercises() {
-            const catalog = await fetchExercisesCatalog();
-            const progressMap = await fetchExerciseProgressMap(this.currentUser.userId);
+            this.isLoading = true;
+            try {
+                const catalog = await fetchExercisesCatalog();
+                const progressMap = await fetchExerciseProgressMap(this.currentUser.userId);
 
-            const withProgress = catalog.map((ex) => {
-                const p = progressMap.get(ex.id);
-                return {
-                    ...ex,
-                    progress: mapProgressRow(p),
-                };
-            });
+                const withProgress = catalog.map((ex) => {
+                    const p = progressMap.get(ex.id);
+                    return {
+                        ...ex,
+                        progress: mapProgressRow(p),
+                    };
+                });
 
-            withProgress.sort((a, b) => {
-                const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
-                const diffA = difficultyOrder[a.difficulty] ?? 99;
-                const diffB = difficultyOrder[b.difficulty] ?? 99;
+                withProgress.sort((a, b) => {
+                    const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
+                    const diffA = difficultyOrder[a.difficulty] ?? 99;
+                    const diffB = difficultyOrder[b.difficulty] ?? 99;
 
-                if (diffA !== diffB) {
-                    return diffA - diffB;
-                }
-
-                const baseTitle = (title) => {
-                    if (!title) {
-                        return '';
+                    if (diffA !== diffB) {
+                        return diffA - diffB;
                     }
-                    const parts = title.split(':');
-                    return parts[0].trim().toLowerCase();
-                };
 
-                const titleA = baseTitle(a.title);
-                const titleB = baseTitle(b.title);
+                    const baseTitle = (title) => {
+                        if (!title) {
+                            return '';
+                        }
+                        const parts = title.split(':');
+                        return parts[0].trim().toLowerCase();
+                    };
 
-                const cmp = titleA.localeCompare(titleB);
-                if (cmp !== 0) {
-                    return cmp;
-                }
+                    const titleA = baseTitle(a.title);
+                    const titleB = baseTitle(b.title);
 
-                return (a.title || '').localeCompare(b.title || '');
-            });
+                    const cmp = titleA.localeCompare(titleB);
+                    if (cmp !== 0) {
+                        return cmp;
+                    }
 
-            this.exercises = withProgress;
+                    return (a.title || '').localeCompare(b.title || '');
+                });
+
+                this.exercises = withProgress;
+            } finally {
+                this.isLoading = false;
+            }
         },
 
         /**

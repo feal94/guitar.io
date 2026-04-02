@@ -5,6 +5,22 @@
     display: none !important;
 }
 
+/* Shared loading state (Supabase / async data) */
+.app-loading-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1rem;
+    min-height: 14rem;
+}
+
+.app-loading-block .spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
 :root {
     --primary-color: #0d6efd;
     --secondary-color: #6c757d;
