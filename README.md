@@ -26,6 +26,18 @@ python -m http.server
 
 Then open `http://localhost:8000`.
 
+### 3. Shared navbar (optional to know)
+
+App pages reuse the top navigation by keeping a **single line** in each HTML file:
+
+```html
+<div data-nav-include="back-dashboard"></div>
+```
+
+At load time, **`js/includes.js`** (a small ES module, placed **after** `js/supabase-init.js` and **before** Alpine) `fetch`es the matching file under **`partials/`** and replaces that placeholder with the real `<nav>...</nav>`. Keys are listed in `js/includes.js` (`dashboard`, `back-dashboard`, `back-routines`, etc.). No build step: edit the root `*.html` files and the partials directly.
+
+`<link>` tags stay in each page’s `<head>` so there is nothing to compile and no template engine.
+
 ## Architecture
 
 ### Frontend
@@ -60,6 +72,7 @@ The app is suitable for static hosting (e.g. GitHub Pages). You must supply `js/
 ### HTML and CSS
 
 - Use Bootstrap for layout and components; add overrides in `css/style.css` and page-specific CSS (`css/dashboard.css`, `css/exercise.css`) as needed.
+- Shared **nav** markup lives in **`partials/*.html`** and is injected by **`js/includes.js`** (see setup above).
 
 ### Supabase usage
 
