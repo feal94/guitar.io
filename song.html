@@ -14,8 +14,9 @@
 <body>
     <div x-data="songApp" class="dashboard-container">
         <div data-nav-include="back-songs"></div>
-        <!-- Main Content -->
-        <div class="container mt-4" x-show="song">
+        <!-- Main Content (x-if so bindings are not evaluated while song is null) -->
+        <template x-if="song">
+        <div class="container mt-4">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <!-- Song Header -->
@@ -48,16 +49,27 @@
                             <a :href="song.tab_url" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
                                 Open Tab in new tab
                             </a>
+                            <div class="border-top pt-3 mt-3" x-show="song.song_url">
+                                <p class="small text-muted mb-2">You also have a tab link on another site.</p>
+                                <a
+                                    :href="song.song_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="btn btn-outline-secondary btn-sm"
+                                >
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Open tab on external page
+                                </a>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- External Tab Link -->
+                    <!-- External Tab only (no uploaded file) -->
                     <div class="card mb-4" x-show="song.song_url && !song.tab_url">
                         <div class="card-body">
                             <h5 class="card-title mb-3">External Tab</h5>
                             <p>This song has an external tab link.</p>
-                            <a :href="song.song_url" target="_blank" class="btn btn-primary">
-                                <i class="bi bi-link-45deg me-1"></i>View Tab
+                            <a :href="song.song_url" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                                <i class="bi bi-link-45deg me-1"></i>Open tab on external page
                             </a>
                         </div>
                     </div>
@@ -173,6 +185,7 @@
                 </div>
             </div>
         </div>
+        </template>
 
         <!-- Loading State -->
         <div class="container mt-4" x-show="!song">

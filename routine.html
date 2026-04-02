@@ -62,14 +62,25 @@
                                         <iframe :src="song.tab_url" title="Song tab" style="border: 1px solid #dee2e6; border-radius: 0.25rem;"></iframe>
                                     </div>
                                     <a :href="song.tab_url" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Open tab in new tab</a>
+                                    <div class="border-top pt-3 mt-3" x-show="song.song_url">
+                                        <p class="small text-muted mb-2">You also have a tab link on another site.</p>
+                                        <a
+                                            :href="song.song_url"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="btn btn-outline-secondary btn-sm"
+                                        >
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>Open tab on external page
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="card mb-4" x-show="song.song_url && !song.tab_url">
                                 <div class="card-body">
                                     <h5 class="card-title mb-3">External tab</h5>
-                                    <a :href="song.song_url" target="_blank" class="btn btn-primary">
-                                        <i class="bi bi-link-45deg me-1"></i>View tab
+                                    <a :href="song.song_url" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                                        <i class="bi bi-link-45deg me-1"></i>Open tab on external page
                                     </a>
                                 </div>
                             </div>
