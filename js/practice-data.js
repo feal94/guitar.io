@@ -164,7 +164,7 @@ async function fetchUserRoutines(userId) {
     }
     const { data, error } = await supabase
         .from('routines')
-        .select('id, name, duration_minutes')
+        .select('id, name, duration_minutes, description, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
     if (error) {
@@ -172,6 +172,119 @@ async function fetchUserRoutines(userId) {
         return [];
     }
     return data || [];
+}
+
+async function fetchAllUserSongs(userId) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        return [];
+    }
+    const { data, error } = await supabase
+        .from('songs')
+        .select('id, title, artist, bpm, song_url, tab_path')
+        .eq('user_id', userId)
+        .order('title', { ascending: true });
+    if (error) {
+        console.error('fetchAllUserSongs', error);
+        return [];
+    }
+    return data || [];
+}
+
+/**
+ * @returns {Promise<{ routine: object, items: object[] } | null>}
+ */
+async function fetchRoutineWithItems(routineId) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        return null;
+    }
+    const { data: routine, error: rErr } = await supabase
+        .from('routines')
+        .select('*')
+        .eq('id', routineId)
+        .maybeSingle();
+    if (rErr) {
+        console.error('fetchRoutineWithItems routine', rErr);
+        return null;
+    }
+    if (!routine) {
+        return null;
+    }
+    const { data: items, error: iErr } = await supabase
+        .from('routine_items')
+        .select('*')
+        .eq('routine_id', routineId)
+        .order('sort_order', { ascending: true });
+    if (iErr) {
+        console.error('fetchRoutineWithItems items', iErr);
+        return null;
+    }
+    return { routine, items: items || [] };
+}
+
+/**
+ * @param {string} userId
+ * @param {{ name: string, description?: string }} meta
+ * @param {{ item_type: 'song'|'exercise', song_id?: string, exercise_id?: string, duration_minutes: number }[]} items
+ * @returns {Promise<string>} new routine id
+ */
+async function insertRoutineWithItems(userId, meta, items) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        throw new Error('Supabase is not configured');
+    }
+    if (!items.length) {
+        throw new Error('Add at least one song or exercise to the routine.');
+    }
+    const totalMinutes = items.reduce((sum, row) => sum + (row.duration_minutes || 0), 0);
+
+    const { data: routineRow, error: rErr } = await supabase
+        .from('routines')
+        .insert({
+            user_id: userId,
+            name: meta.name,
+            description: meta.description || null,
+            duration_minutes: totalMinutes || null,
+        })
+        .select('id')
+        .single();
+
+    if (rErr) {
+        console.error('insertRoutineWithItems routine', rErr);
+        throw rErr;
+    }
+
+    const routineId = routineRow.id;
+    const rows = items.map((it, idx) => ({
+        routine_id: routineId,
+        sort_order: idx,
+        item_type: it.item_type,
+        song_id: it.item_type === 'song' ? it.song_id : null,
+        exercise_id: it.item_type === 'exercise' ? it.exercise_id : null,
+        duration_minutes: it.duration_minutes,
+    }));
+
+    const { error: iErr } = await supabase.from('routine_items').insert(rows);
+    if (iErr) {
+        console.error('insertRoutineWithItems items', iErr);
+        await supabase.from('routines').delete().eq('id', routineId);
+        throw iErr;
+    }
+
+    return routineId;
+}
+
+async function deleteRoutine(routineId) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        throw new Error('Supabase is not configured');
+    }
+    const { error } = await supabase.from('routines').delete().eq('id', routineId);
+    if (error) {
+        console.error('deleteRoutine', error);
+        throw error;
+    }
 }
 
 function mapProgressRow(row) {
@@ -192,7 +305,7 @@ function mapProgressRow(row) {
 /**
  * Increment times_practiced, set last_practiced, completed; insert practice session row.
  */
-async function recordExercisePracticeSession(userId, exerciseId, durationMinutes) {
+async function recordExercisePracticeSession(userId, exerciseId, durationMinutes, routineId = null) {
     const supabase = await getPracticeSupabase();
     if (!supabase) {
         throw new Error('Supabase is not configured');
@@ -229,13 +342,18 @@ async function recordExercisePracticeSession(userId, exerciseId, durationMinutes
         throw upErr;
     }
 
-    const { error: insErr } = await supabase.from('practice_sessions').insert({
+    const sessionRow = {
         user_id: userId,
         session_date: todayLocalDateString(),
         duration_minutes: durationMinutes,
         exercise_id: exerciseId,
         created_at: nowIso,
-    });
+    };
+    if (routineId) {
+        sessionRow.routine_id = routineId;
+    }
+
+    const { error: insErr } = await supabase.from('practice_sessions').insert(sessionRow);
 
     if (insErr) {
         console.error('recordExercisePracticeSession insert session', insErr);
@@ -243,7 +361,7 @@ async function recordExercisePracticeSession(userId, exerciseId, durationMinutes
     }
 }
 
-async function recordSongPracticeSession(userId, songId, durationMinutes) {
+async function recordSongPracticeSession(userId, songId, durationMinutes, routineId = null) {
     const supabase = await getPracticeSupabase();
     if (!supabase) {
         throw new Error('Supabase is not configured');
@@ -262,13 +380,18 @@ async function recordSongPracticeSession(userId, songId, durationMinutes) {
         throw upErr;
     }
 
-    const { error: insErr } = await supabase.from('practice_sessions').insert({
+    const sessionRow = {
         user_id: userId,
         session_date: todayLocalDateString(),
         duration_minutes: durationMinutes,
         song_id: songId,
         created_at: nowIso,
-    });
+    };
+    if (routineId) {
+        sessionRow.routine_id = routineId;
+    }
+
+    const { error: insErr } = await supabase.from('practice_sessions').insert(sessionRow);
 
     if (insErr) {
         console.error('recordSongPracticeSession insert session', insErr);
