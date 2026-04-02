@@ -6,13 +6,7 @@ Web app for guitarists to track practice sessions, browse exercises, and manage 
 
 ### 1. Supabase configuration (required)
 
-Secrets are **not** committed. Copy the example config and add your project URL and anon key (Supabase Dashboard → Project Settings → API).
-
-```bash
-cp js/supabase-config.example.js js/supabase-config.js
-```
-
-Edit `js/supabase-config.js` and replace the placeholders. That file is listed in `.gitignore`; do not commit it.
+Edit **`js/supabase-config.js`** and set your project URL and anon key (Supabase Dashboard → Project Settings → API). The file is committed so static hosting (e.g. GitHub Pages) works out of the box; protect data with Row Level Security in Supabase, not by hiding the anon key.
 
 Apply SQL migrations in order from `supabase/migrations/` in the Supabase SQL Editor (or your usual migration workflow) so tables and RLS policies match what the client expects.
 
@@ -54,7 +48,7 @@ At load time, **`js/includes.js`** (a small ES module, placed **after** `js/supa
 
 ### Deployment
 
-The app is suitable for static hosting (e.g. GitHub Pages). You must supply `js/supabase-config.js` in the deployed environment (build step, secret injection, or a private deploy pipeline); the example file alone is not enough for a working production build.
+The app is suitable for static hosting (e.g. GitHub Pages). Ensure **`js/supabase-config.js`** contains real values before deploying; placeholders alone are not enough for a working build.
 
 ## Code style and conventions
 
@@ -96,4 +90,4 @@ Details are defined in `supabase/migrations/` (apply in dependency order).
 ## Git workflow
 
 - Use **feature branches** from `main` with prefixes such as `feature/`, `bugfix/`, or `chore/`.
-- Avoid committing secrets; keep `js/supabase-config.js` local or inject it in CI/CD.
+- Commit `js/supabase-config.js` with your project values when you want the hosted site to work; the anon key is public by design (RLS enforces access control).
