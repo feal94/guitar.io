@@ -1,10 +1,7 @@
 // guitar.io - Dashboard JavaScript
 
-/**
- * Alpine.js component for dashboard
- */
-function dashboardApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('dashboardApp', () => ({
         userEmail: '',
         displayName: '',
         currentUser: null,
@@ -164,5 +161,5 @@ function dashboardApp() {
         async logout() {
             await window.logout();
         },
-    };
-}
+    }));
+});

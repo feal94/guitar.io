@@ -1,4 +1,3 @@
-
 document.addEventListener('alpine:init', () => {
     Alpine.data('addSongApp', () => ({
         song: {
@@ -6,22 +5,20 @@ document.addEventListener('alpine:init', () => {
             artist: '',
             bpm: null,
             song_url: '',
-            tab_path: ''
+            tab_path: '',
         },
         file: null,
         isLoading: false,
         errorMessage: '',
         user: null,
 
-        init() {
-            waitForSupabase().then(async supabase => {
-                const { data: { session } } = await supabase.auth.getSession();
-                this.user = session?.user;
-
-                supabase.auth.onAuthStateChange((event, session) => {
-                    this.user = session?.user ?? null;
-                });
-            });
+        async init() {
+            const user = await getSessionUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            this.user = user;
         },
 
         handleFileUpload(event) {
@@ -40,47 +37,44 @@ document.addEventListener('alpine:init', () => {
 
             try {
                 const supabase = await waitForSupabase();
-                // 1. Upload file if it exists
+                if (!supabase) {
+                    throw new Error('Supabase is not configured');
+                }
                 if (this.file) {
-                    const filePath = `${this.user.id}/${Date.now()}_${this.file.name}`;
-                    const { error: uploadError } = await supabase
-                        .storage
+                    const filePath = `${this.user.userId}/${Date.now()}_${this.file.name}`;
+                    const { error: uploadError } = await supabase.storage
                         .from('song_tabs')
                         .upload(filePath, this.file);
-                    
+
                     if (uploadError) throw uploadError;
                     tabPath = filePath;
                 }
 
-                // 2. Insert song data into the database
-                const { error: insertError } = await supabase
-                    .from('songs')
-                    .insert([{
-                        user_id: this.user.id,
+                const { error: insertError } = await supabase.from('songs').insert([
+                    {
+                        user_id: this.user.userId,
                         title: this.song.title,
                         artist: this.song.artist,
                         bpm: this.song.bpm,
                         song_url: this.song.song_url,
-                        tab_path: tabPath
-                    }]);
+                        tab_path: tabPath,
+                    },
+                ]);
 
                 if (insertError) throw insertError;
 
-                // 3. Redirect on success
                 window.location.href = 'songs.html';
-
             } catch (error) {
                 this.errorMessage = `Error: ${error.message}`;
                 console.error('Error adding song:', error);
-                
+
                 const supabase = await waitForSupabase();
-                // Clean up uploaded file if database insert fails
-                if (tabPath) {
+                if (supabase && tabPath) {
                     await supabase.storage.from('song_tabs').remove([tabPath]);
                 }
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
     }));
 });

@@ -1,10 +1,7 @@
 // guitar.io - Authentication with Supabase Auth and Alpine.js
 
-/**
- * Alpine.js component for login form
- */
-function loginForm() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('loginForm', () => ({
         username: '',
         password: '',
         errorMessage: '',
@@ -57,14 +54,9 @@ function loginForm() {
                 this.isLoading = false;
             }
         },
-    };
-}
+    }));
 
-/**
- * Alpine.js component for registration form
- */
-function registerForm() {
-    return {
+    Alpine.data('registerForm', () => ({
         username: '',
         password: '',
         confirmPassword: '',
@@ -142,14 +134,9 @@ function registerForm() {
                 this.isLoading = false;
             }
         },
-    };
-}
+    }));
 
-/**
- * Alpine.js component for password recovery form
- */
-function recoverForm() {
-    return {
+    Alpine.data('recoverForm', () => ({
         username: '',
         errorMessage: '',
         successMessage: '',
@@ -201,14 +188,9 @@ function recoverForm() {
                 this.isLoading = false;
             }
         },
-    };
-}
+    }));
 
-/**
- * Alpine.js — set new password after email link (reset-password.html)
- */
-function resetPasswordForm() {
-    return {
+    Alpine.data('resetPasswordForm', () => ({
         password: '',
         confirmPassword: '',
         errorMessage: '',
@@ -304,5 +286,5 @@ function resetPasswordForm() {
                 this.isLoading = false;
             }
         },
-    };
-}
+    }));
+});

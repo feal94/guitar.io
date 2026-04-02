@@ -1,10 +1,7 @@
 // guitar.io - Individual Exercise JavaScript
 
-/**
- * Alpine.js component for individual exercise page
- */
-function exerciseApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('exerciseApp', () => ({
         userEmail: '',
         currentUser: null,
         exercise: null,
@@ -387,7 +384,7 @@ function exerciseApp() {
          */
         async logout() {
             await window.logout();
-        }
-    };
-}
+        },
+    }));
+});
 

@@ -1,10 +1,7 @@
 // guitar.io - Exercises List JavaScript
 
-/**
- * Alpine.js component for exercises list page
- */
-function exercisesApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('exercisesApp', () => ({
         userEmail: '',
         currentUser: null,
         exercises: [],
@@ -115,5 +112,5 @@ function exercisesApp() {
         async logout() {
             await window.logout();
         },
-    };
-}
+    }));
+});
