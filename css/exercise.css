@@ -1,5 +1,45 @@
 /* Exercise-specific styles */
 
+/* PDF.js inline preview (song tabs, exercise PDFs) */
+.pdf-inline-wrap {
+    min-height: 10rem;
+}
+
+.pdf-toolbar {
+    flex-shrink: 0;
+}
+
+.pdf-zoom-btns .btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pdf-inline-scroll {
+    max-height: min(70vh, 720px);
+    overflow: auto;
+    padding: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pdf-inline-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    /* Let inline width/height from JS control layout; avoid extra blur from scaling */
+    vertical-align: top;
+}
+
+.pdf-inline-canvas:last-child {
+    margin-bottom: 0;
+}
+
+.tab-image-preview {
+    max-height: min(70vh, 720px);
+    object-fit: contain;
+}
+
 /* Timer Display */
 .timer-display {
     font-size: 5rem;

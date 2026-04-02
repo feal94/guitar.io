@@ -41,11 +41,32 @@
                     <div class="card mb-4" x-show="song.tab_url">
                         <div class="card-body">
                             <h5 class="card-title mb-3">Song Tab</h5>
-                            <div class="ratio ratio-4x3 mb-3">
-                                <iframe :src="song.tab_url"
-                                        title="Song Tab"
-                                        style="border: 1px solid #dee2e6; border-radius: 0.25rem;"></iframe>
-                            </div>
+                            <template x-if="song.tab_url && window.guitarIoResourceIsPdf(song.tab_path || song.tab_url)">
+                                <div class="mb-3 w-100" x-data="pdfViewer(song, 'tab_url')">
+                                    <div class="pdf-inline-wrap border rounded bg-light overflow-hidden" x-ref="pdfOuter">
+                                        <div class="pdf-toolbar d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-2 border-bottom bg-white" x-show="!error">
+                                            <span class="small text-muted mb-0">Zoom</span>
+                                            <div class="btn-group btn-group-sm pdf-zoom-btns" role="group" aria-label="PDF zoom">
+                                                <button type="button" class="btn btn-outline-secondary" @click.prevent="pdfZoomOut()" :disabled="loading || pdfZoom <= 0.5" title="Zoom out">−</button>
+                                                <span class="btn btn-outline-secondary text-nowrap disabled" x-text="Math.round(pdfZoom * 100) + '%'"></span>
+                                                <button type="button" class="btn btn-outline-secondary" @click.prevent="pdfZoomIn()" :disabled="loading || pdfZoom >= 4" title="Zoom in">+</button>
+                                                <button type="button" class="btn btn-outline-primary" @click.prevent="pdfZoomFit()" :disabled="loading" title="Fit width">Fit</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="loading" class="text-center py-5">
+                                            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                            <p class="text-muted small mb-0 mt-2">Loading tab…</p>
+                                        </div>
+                                        <div x-show="error" class="alert alert-warning m-3 mb-0" x-text="error"></div>
+                                        <div x-ref="pdfHost" class="pdf-inline-scroll" x-show="!loading && !error"></div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="song.tab_url && !window.guitarIoResourceIsPdf(song.tab_path || song.tab_url)">
+                                <div class="mb-3 text-center">
+                                    <img :src="song.tab_url" :alt="song.title + ' tab'" class="img-fluid rounded border tab-image-preview">
+                                </div>
+                            </template>
                             <a :href="song.tab_url" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
                                 Open Tab in new tab
                             </a>
@@ -202,6 +223,7 @@
     <script defer src="js/app.js"></script>
     <script defer src="js/practice-data.js"></script>
     <script defer src="js/song.js"></script>
+    <script type="module" src="js/pdf-viewer.js"></script>
     <script type="module" src="js/supabase-init.js"></script>
     <script type="module" src="js/includes.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
