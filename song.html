@@ -43,7 +43,16 @@
                             <h5 class="card-title mb-3">Song Tab</h5>
                             <template x-if="song.tab_url && window.guitarIoResourceIsPdf(song.tab_path || song.tab_url)">
                                 <div class="mb-3 w-100" x-data="pdfViewer(song, 'tab_url')">
-                                    <div class="pdf-inline-wrap border rounded bg-light overflow-hidden">
+                                    <div class="pdf-inline-wrap border rounded bg-light overflow-hidden" x-ref="pdfOuter">
+                                        <div class="pdf-toolbar d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-2 border-bottom bg-white" x-show="!error">
+                                            <span class="small text-muted mb-0">Zoom</span>
+                                            <div class="btn-group btn-group-sm pdf-zoom-btns" role="group" aria-label="PDF zoom">
+                                                <button type="button" class="btn btn-outline-secondary" @click.prevent="pdfZoomOut()" :disabled="loading || pdfZoom <= 0.5" title="Zoom out">−</button>
+                                                <span class="btn btn-outline-secondary text-nowrap disabled" x-text="Math.round(pdfZoom * 100) + '%'"></span>
+                                                <button type="button" class="btn btn-outline-secondary" @click.prevent="pdfZoomIn()" :disabled="loading || pdfZoom >= 4" title="Zoom in">+</button>
+                                                <button type="button" class="btn btn-outline-primary" @click.prevent="pdfZoomFit()" :disabled="loading" title="Fit width">Fit</button>
+                                            </div>
+                                        </div>
                                         <div x-show="loading" class="text-center py-5">
                                             <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
                                             <p class="text-muted small mb-0 mt-2">Loading tab…</p>
