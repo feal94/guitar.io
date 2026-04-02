@@ -9,19 +9,21 @@ document.addEventListener('alpine:init', () => {
         songSelectId: '',
         exerciseSelectId: '',
         draftItems: [],
-        isLoading: false,
+        isLoadingData: true,
+        isSaving: false,
         errorMessage: '',
         user: null,
 
         async init() {
-            const user = await getSessionUser();
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            this.user = user;
-
+            this.isLoadingData = true;
             try {
+                const user = await getSessionUser();
+                if (!user) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                this.user = user;
+
                 const [songRows, catalog] = await Promise.all([
                     fetchAllUserSongs(user.userId),
                     fetchExercisesCatalog(),
@@ -31,6 +33,8 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 console.error(e);
                 this.errorMessage = 'Could not load songs or exercises. Please refresh.';
+            } finally {
+                this.isLoadingData = false;
             }
         },
 
@@ -119,7 +123,7 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            this.isLoading = true;
+            this.isSaving = true;
             try {
                 const items = this.draftItems.map((row) => {
                     if (row.item_type === 'song') {
@@ -146,7 +150,7 @@ document.addEventListener('alpine:init', () => {
                 console.error(e);
                 this.errorMessage = e.message || 'Could not save routine.';
             } finally {
-                this.isLoading = false;
+                this.isSaving = false;
             }
         },
     }));

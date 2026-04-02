@@ -15,29 +15,35 @@ document.addEventListener('alpine:init', () => {
         currentMonthYear: '',
         calendarHtml: '',
         practiceDays: [],
+        isLoading: true,
 
         /**
          * Initialize dashboard
          */
         async init() {
-            const user = await getSessionUser();
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
+            this.isLoading = true;
+            try {
+                const user = await getSessionUser();
+                if (!user) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                this.currentUser = user;
+                this.userEmail = user.email;
+
+                await this.loadUserData();
+
+                await this.loadStats();
+
+                this.generateCalendar();
+
+                await this.loadRecentSongs();
+
+                await this.loadUserRoutines();
+            } finally {
+                this.isLoading = false;
             }
-
-            this.currentUser = user;
-            this.userEmail = user.email;
-
-            await this.loadUserData();
-
-            await this.loadStats();
-
-            this.generateCalendar();
-
-            await this.loadRecentSongs();
-
-            await this.loadUserRoutines();
         },
 
         /**
