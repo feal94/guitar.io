@@ -124,7 +124,7 @@
                                                     <span x-text="routine.duration_minutes"></span>
                                                     <span x-show="routine.duration_minutes"> minutes</span>
                                                 </h6>
-                                                <button class="btn btn-primary btn-sm" @click="alert('Starting routine - Coming soon')">Start</button>
+                                                <a :href="'routine.html?id=' + routine.id" class="btn btn-primary btn-sm">Start</a>
                                             </div>
                                         </div>
                                     </template>
@@ -148,9 +148,9 @@
                                 <div class="text-center py-5">
                                     <i class="bi bi-calendar-plus display-1 text-muted mb-3"></i>
                                     <h5 class="text-muted mb-3">No routines yet</h5>
-                                    <button class="btn btn-primary btn-lg" @click="alert('Create routine - Coming soon')">
+                                    <a href="add-routine.html" class="btn btn-primary btn-lg">
                                         <i class="bi bi-plus-circle me-2"></i>Create your first practice routine!
-                                    </button>
+                                    </a>
                                     
                                     <div class="row g-3 mt-4">
                                         <div class="col-md-6">
@@ -189,7 +189,7 @@
                                 <a href="exercises.html" class="list-group-item list-group-item-action">
                                     <i class="bi bi-journal-check me-2"></i>Exercises
                                 </a>
-                                <a href="#" class="list-group-item list-group-item-action" @click.prevent="alert('My Routines - Coming soon')">
+                                <a href="routines.html" class="list-group-item list-group-item-action">
                                     <i class="bi bi-calendar-check me-2"></i>My Routines
                                 </a>
                             </div>
