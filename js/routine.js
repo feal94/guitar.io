@@ -1,7 +1,7 @@
 // guitar.io — run a practice routine (steps: songs + exercises)
 
-function routineApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('routineApp', () => ({
         userEmail: '',
         currentUser: null,
         routineMeta: null,
@@ -399,5 +399,5 @@ function routineApp() {
         async logout() {
             await window.logout();
         },
-    };
-}
+    }));
+});

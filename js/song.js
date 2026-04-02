@@ -1,10 +1,7 @@
 // guitar.io - Individual Song JavaScript
 
-/**
- * Alpine.js component for individual song page
- */
-function songApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('songApp', () => ({
         userEmail: '',
         currentUser: null,
         song: null,
@@ -384,6 +381,6 @@ function songApp() {
          */
         async logout() {
             await window.logout();
-        }
-    };
-}
+        },
+    }));
+});

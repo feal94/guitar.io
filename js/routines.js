@@ -1,7 +1,7 @@
 // guitar.io — list user practice routines
 
-function routinesApp() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('routinesApp', () => ({
         userEmail: '',
         currentUser: null,
         routines: [],
@@ -64,5 +64,5 @@ function routinesApp() {
         async logout() {
             await window.logout();
         },
-    };
-}
+    }));
+});

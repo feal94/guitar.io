@@ -1,4 +1,3 @@
-
 document.addEventListener('alpine:init', () => {
     Alpine.data('songsApp', () => ({
         songs: [],
@@ -6,22 +5,29 @@ document.addEventListener('alpine:init', () => {
         searchQuery: '',
         userEmail: '',
         isLoading: true,
-        
-        init() {
-            waitForSupabase().then(supabase => {
-                this.userEmail = localStorage.getItem('user_email');
-                this.fetchSongs();
 
-                this.$watch('searchQuery', () => {
-                    this.filterSongs();
-                });
+        async init() {
+            const user = await getSessionUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+            this.userEmail = user.email;
+
+            this.$watch('searchQuery', () => {
+                this.filterSongs();
             });
+
+            await this.fetchSongs();
         },
 
         async fetchSongs() {
             this.isLoading = true;
             try {
                 const supabase = await waitForSupabase();
+                if (!supabase) {
+                    throw new Error('Supabase is not configured');
+                }
                 const { data, error } = await supabase
                     .from('songs')
                     .select('*')
@@ -45,7 +51,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             const query = this.searchQuery.toLowerCase();
-            this.filteredSongs = this.songs.filter(song => {
+            this.filteredSongs = this.songs.filter((song) => {
                 return (
                     song.title.toLowerCase().includes(query) ||
                     (song.artist && song.artist.toLowerCase().includes(query))
@@ -54,13 +60,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async logout() {
-            const supabase = await waitForSupabase();
-            supabase.auth.signOut().then(() => {
-                localStorage.removeItem('user_email');
-                window.location.href = 'index.html';
-            }).catch(error => {
-                console.error('Logout failed:', error);
-            });
-        }
+            await window.logout();
+        },
     }));
 });

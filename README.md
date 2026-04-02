@@ -54,7 +54,7 @@ The app is suitable for static hosting (e.g. GitHub Pages). You must supply `js/
 
 ### Alpine.js
 
-- Prefer a **dedicated function or `Alpine.data` registration** that returns the component state and methods.
+- Register components with **`Alpine.data('name', () => ({ ... }))`** inside `document.addEventListener('alpine:init', ...)`, and use **`x-data="name"`** in HTML (no parentheses). See existing page scripts under `js/`.
 - Use `x-data`, `x-model`, `x-text` / `x-html`, and `@click` (or `x-on:click`) consistently with Bootstrap.
 
 ### HTML and CSS
