@@ -65,10 +65,15 @@
                     <div class="card mb-4" x-show="!exercise.image_path && exercise.pdf_path">
                         <div class="card-body">
                             <h5 class="card-title mb-3">Exercise PDF</h5>
-                            <div class="ratio ratio-4x3 mb-3">
-                                <iframe :src="exercise.pdf_path"
-                                        title="Exercise PDF"
-                                        style="border: 1px solid #dee2e6; border-radius: 0.25rem;"></iframe>
+                            <div class="mb-3 w-100" x-data="pdfViewer(exercise, 'pdf_path')">
+                                <div class="pdf-inline-wrap border rounded bg-light overflow-hidden">
+                                    <div x-show="loading" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                                        <p class="text-muted small mb-0 mt-2">Loading PDF…</p>
+                                    </div>
+                                    <div x-show="error" class="alert alert-warning m-3 mb-0" x-text="error"></div>
+                                    <div x-ref="pdfHost" class="pdf-inline-scroll" x-show="!loading && !error"></div>
+                                </div>
                             </div>
                             <a :href="exercise.pdf_path" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
                                 Open PDF in new tab
@@ -204,6 +209,7 @@
     <script defer src="js/practice-data.js"></script>
 
     <script defer src="js/exercise.js"></script>
+    <script type="module" src="js/pdf-viewer.js"></script>
 
     <script type="module" src="js/supabase-init.js"></script>
     <script type="module" src="js/includes.js"></script>
