@@ -275,6 +275,77 @@ async function insertRoutineWithItems(userId, meta, items) {
     return routineId;
 }
 
+/**
+ * Replace routine metadata and all items (same shape as insertRoutineWithItems items).
+ * @param {string} userId
+ * @param {string} routineId
+ * @param {{ name: string, description?: string }} meta
+ * @param {{ item_type: 'song'|'exercise', song_id?: string, exercise_id?: string, duration_minutes: number }[]} items
+ */
+async function updateRoutineWithItems(userId, routineId, meta, items) {
+    const supabase = await getPracticeSupabase();
+    if (!supabase) {
+        throw new Error('Supabase is not configured');
+    }
+    if (!items.length) {
+        throw new Error('Add at least one song or exercise to the routine.');
+    }
+    const totalMinutes = items.reduce((sum, row) => sum + (row.duration_minutes || 0), 0);
+
+    const { data: existing, error: fetchErr } = await supabase
+        .from('routines')
+        .select('id, user_id')
+        .eq('id', routineId)
+        .maybeSingle();
+
+    if (fetchErr) {
+        console.error('updateRoutineWithItems fetch', fetchErr);
+        throw fetchErr;
+    }
+    if (!existing) {
+        throw new Error('Routine not found.');
+    }
+    if (existing.user_id !== userId) {
+        throw new Error('You cannot edit this routine.');
+    }
+
+    const { error: upErr } = await supabase
+        .from('routines')
+        .update({
+            name: meta.name,
+            description: meta.description || null,
+            duration_minutes: totalMinutes || null,
+        })
+        .eq('id', routineId)
+        .eq('user_id', userId);
+
+    if (upErr) {
+        console.error('updateRoutineWithItems routine', upErr);
+        throw upErr;
+    }
+
+    const { error: delErr } = await supabase.from('routine_items').delete().eq('routine_id', routineId);
+    if (delErr) {
+        console.error('updateRoutineWithItems delete items', delErr);
+        throw delErr;
+    }
+
+    const rows = items.map((it, idx) => ({
+        routine_id: routineId,
+        sort_order: idx,
+        item_type: it.item_type,
+        song_id: it.item_type === 'song' ? it.song_id : null,
+        exercise_id: it.item_type === 'exercise' ? it.exercise_id : null,
+        duration_minutes: it.duration_minutes,
+    }));
+
+    const { error: insErr } = await supabase.from('routine_items').insert(rows);
+    if (insErr) {
+        console.error('updateRoutineWithItems insert items', insErr);
+        throw insErr;
+    }
+}
+
 async function deleteRoutine(routineId) {
     const supabase = await getPracticeSupabase();
     if (!supabase) {
