@@ -18,6 +18,43 @@
         <div class="container mt-4" x-show="exercise">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
+                    <div
+                        class="alert alert-dismissible mb-3"
+                        role="alert"
+                        x-show="practiceFeedbackMessage"
+                        x-cloak
+                        x-transition
+                        :class="{
+                            'alert-success': practiceFeedbackVariant === 'success',
+                            'alert-danger': practiceFeedbackVariant === 'danger',
+                            'alert-info': practiceFeedbackVariant === 'info'
+                        }">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <span x-text="practiceFeedbackMessage"></span>
+                            <button type="button" class="btn-close" @click="clearPracticeFeedback()" aria-label="Close"></button>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="recordPracticeModal" tabindex="-1" aria-labelledby="recordPracticeModalLabel" aria-hidden="true" @hidden.bs.modal="pendingRecordMinutes = null">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="recordPracticeModalLabel">Record this practice?</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="mb-0">Add this session to your practice stats? It will be logged as about <strong x-text="pendingRecordMinutes"></strong> minute(s).</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Don't record</button>
+                                    <button type="button" class="btn btn-primary" @click="submitPendingRecord()">
+                                        <i class="bi bi-check-lg me-1"></i>Yes, record it
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Exercise Header -->
                     <div class="card mb-4">
                         <div class="card-body">
@@ -154,7 +191,7 @@
                                 <button class="btn btn-success btn-lg" @click="resumeTimer()" x-show="isTimerPaused">
                                     <i class="bi bi-play-fill me-2"></i>Resume
                                 </button>
-                                <button class="btn btn-danger btn-lg" @click="stopTimer">
+                                <button class="btn btn-danger btn-lg" @click="confirmStopPractice">
                                     <i class="bi bi-stop-fill me-2"></i>Stop
                                 </button>
                             </div>
