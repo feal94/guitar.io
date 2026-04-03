@@ -12,10 +12,15 @@ document.addEventListener('alpine:init', () => {
         isLoadingData: true,
         isSaving: false,
         errorMessage: '',
+        editLoadError: '',
+        editingId: null,
+        /** True when URL has `?id=` (edit flow); set before async init. */
+        isEditUrl: !!new URLSearchParams(window.location.search).get('id'),
         user: null,
 
         async init() {
             this.isLoadingData = true;
+            this.editLoadError = '';
             try {
                 const user = await getSessionUser();
                 if (!user) {
@@ -24,18 +29,80 @@ document.addEventListener('alpine:init', () => {
                 }
                 this.user = user;
 
+                const editId = new URLSearchParams(window.location.search).get('id');
+
                 const [songRows, catalog] = await Promise.all([
                     fetchAllUserSongs(user.userId),
                     fetchExercisesCatalog(),
                 ]);
                 this.songs = songRows;
                 this.exercises = catalog || [];
+
+                if (editId) {
+                    await this.loadRoutineForEdit(editId);
+                }
             } catch (e) {
                 console.error(e);
                 this.errorMessage = 'Could not load songs or exercises. Please refresh.';
             } finally {
                 this.isLoadingData = false;
             }
+        },
+
+        async loadRoutineForEdit(routineId) {
+            const bundle = await fetchRoutineWithItems(routineId);
+            if (!bundle || !bundle.routine) {
+                this.editLoadError = 'Routine not found.';
+                return;
+            }
+            const { routine, items } = bundle;
+            if (routine.user_id !== this.user.userId) {
+                this.editLoadError = 'You cannot edit this routine.';
+                return;
+            }
+
+            this.editingId = routineId;
+            this.routineName = routine.name ?? '';
+            this.description = routine.description ?? '';
+
+            const supabase = await waitForSupabase();
+            const draft = [];
+
+            for (const it of items) {
+                if (it.item_type === 'song' && it.song_id) {
+                    let song = this.songs.find((s) => s.id === it.song_id);
+                    if (!song && supabase) {
+                        const { data } = await supabase
+                            .from('songs')
+                            .select('id, title, artist')
+                            .eq('id', it.song_id)
+                            .maybeSingle();
+                        if (data) {
+                            song = data;
+                        }
+                    }
+                    draft.push({
+                        clientId: crypto.randomUUID(),
+                        item_type: 'song',
+                        song_id: it.song_id,
+                        title: song?.title ?? 'Unknown song',
+                        subtitle: song?.artist ?? '',
+                        duration_minutes: it.duration_minutes ?? 5,
+                    });
+                } else if (it.item_type === 'exercise' && it.exercise_id) {
+                    const ex = this.exercises.find((e) => e.id === it.exercise_id);
+                    draft.push({
+                        clientId: crypto.randomUUID(),
+                        item_type: 'exercise',
+                        exercise_id: it.exercise_id,
+                        title: ex?.title ?? 'Unknown exercise',
+                        subtitle: ex?.category ?? '',
+                        duration_minutes: it.duration_minutes ?? 5,
+                    });
+                }
+            }
+
+            this.draftItems = draft;
         },
 
         addSongToDraft() {
@@ -140,12 +207,22 @@ document.addEventListener('alpine:init', () => {
                     };
                 });
 
-                await insertRoutineWithItems(
-                    this.user.userId,
-                    { name: this.routineName.trim(), description: this.description.trim() },
-                    items
-                );
-                window.location.href = 'routines.html';
+                if (this.editingId) {
+                    await updateRoutineWithItems(
+                        this.user.userId,
+                        this.editingId,
+                        { name: this.routineName.trim(), description: this.description.trim() },
+                        items
+                    );
+                    window.location.href = `routine.html?id=${this.editingId}`;
+                } else {
+                    await insertRoutineWithItems(
+                        this.user.userId,
+                        { name: this.routineName.trim(), description: this.description.trim() },
+                        items
+                    );
+                    window.location.href = 'routines.html';
+                }
             } catch (e) {
                 console.error(e);
                 this.errorMessage = e.message || 'Could not save routine.';
