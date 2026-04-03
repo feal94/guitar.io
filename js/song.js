@@ -19,6 +19,10 @@ document.addEventListener('alpine:init', () => {
         isMetronomeOn: false,
         metronomeInterval: null,
         audioContext: null,
+
+        pendingRecordMinutes: null,
+        practiceFeedbackMessage: '',
+        practiceFeedbackVariant: 'success',
         
         /**
          * Initialize song page
@@ -44,6 +48,29 @@ document.addEventListener('alpine:init', () => {
             
             // Load song
             await this.loadSong(songId);
+        },
+
+        setPracticeFeedback(variant, message) {
+            this.practiceFeedbackVariant = variant;
+            this.practiceFeedbackMessage = message;
+        },
+
+        clearPracticeFeedback() {
+            this.practiceFeedbackMessage = '';
+        },
+
+        openRecordPracticeModal() {
+            const el = document.getElementById('recordPracticeModal');
+            if (el) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        },
+
+        hideRecordPracticeModal() {
+            const el = document.getElementById('recordPracticeModal');
+            if (el) {
+                bootstrap.Modal.getOrCreateInstance(el).hide();
+            }
         },
         
         /**
@@ -312,7 +339,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         /**
-         * Stop the timer
+         * Stop the timer (clears UI; does not record stats)
          */
         stopTimer() {
             if (this.timerInterval) {
@@ -329,6 +356,44 @@ document.addEventListener('alpine:init', () => {
             this.timerSeconds = 0;
             this.timerDisplay = '00:00';
         },
+
+        /**
+         * Stop from the UI: offer to record elapsed time for stats
+         */
+        confirmStopPractice() {
+            if (!this.isTimerRunning) {
+                return;
+            }
+            const plannedSeconds = this.practiceTime * 60;
+            const remainingSeconds = this.timerSeconds;
+            this.stopTimer();
+            const elapsedSeconds = plannedSeconds - remainingSeconds;
+            if (elapsedSeconds <= 0) {
+                return;
+            }
+            const durationMinutes = Math.min(
+                this.practiceTime,
+                Math.max(1, Math.ceil(elapsedSeconds / 60))
+            );
+            this.pendingRecordMinutes = durationMinutes;
+            this.openRecordPracticeModal();
+        },
+
+        async submitPendingRecord() {
+            const mins = this.pendingRecordMinutes;
+            if (mins == null) {
+                return;
+            }
+            try {
+                await this.recordPracticeSession(mins);
+                this.hideRecordPracticeModal();
+                this.setPracticeFeedback('success', 'Practice recorded. Great work! 🎸');
+            } catch (e) {
+                console.error(e);
+                this.hideRecordPracticeModal();
+                this.setPracticeFeedback('danger', 'Could not save this practice session.');
+            }
+        },
         
         /**
          * Complete practice session
@@ -337,24 +402,25 @@ document.addEventListener('alpine:init', () => {
             // Stop the timer
             this.stopTimer();
             
-            // Record the session
-            await this.recordPracticeSession();
-            
-            // Show completion message
-            alert('Practice session complete, well done! 🎸');
-            
-            // Reload progress to show updated stats
-            await this.loadSong(this.song.id);
+            try {
+                await this.recordPracticeSession(this.practiceTime);
+                this.setPracticeFeedback('success', 'Practice session complete, well done! 🎸');
+            } catch (e) {
+                console.error(e);
+                this.setPracticeFeedback('danger', 'Could not save this practice session.');
+            }
         },
         
         /**
          * Record practice session in database
+         * @param {number} [durationMinutes] — defaults to planned session length
          */
-        async recordPracticeSession() {
+        async recordPracticeSession(durationMinutes) {
+            const mins = durationMinutes ?? this.practiceTime;
             await recordSongPracticeSession(
                 this.currentUser.userId,
                 this.song.id,
-                this.practiceTime
+                mins
             );
 
             await this.loadSong(this.song.id);

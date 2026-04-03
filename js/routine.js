@@ -29,8 +29,35 @@ document.addEventListener('alpine:init', () => {
         isLoading: true,
         loadError: '',
 
+        pendingRecordMinutes: null,
+        practiceFeedbackMessage: '',
+        practiceFeedbackVariant: 'success',
+
         get currentStep() {
             return this.steps[this.currentIndex] || null;
+        },
+
+        setPracticeFeedback(variant, message) {
+            this.practiceFeedbackVariant = variant;
+            this.practiceFeedbackMessage = message;
+        },
+
+        clearPracticeFeedback() {
+            this.practiceFeedbackMessage = '';
+        },
+
+        openRecordPracticeModal() {
+            const el = document.getElementById('recordPracticeModal');
+            if (el) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        },
+
+        hideRecordPracticeModal() {
+            const el = document.getElementById('recordPracticeModal');
+            if (el) {
+                bootstrap.Modal.getOrCreateInstance(el).hide();
+            }
         },
 
         async init() {
@@ -325,6 +352,64 @@ document.addEventListener('alpine:init', () => {
             this.timerDisplay = '00:00';
         },
 
+        async recordCurrentStepSession(durationMinutes) {
+            const step = this.steps[this.currentIndex];
+            if (!step || !this.routineMeta) {
+                return;
+            }
+            if (step.item_type === 'song') {
+                await recordSongPracticeSession(
+                    this.currentUser.userId,
+                    step.song.id,
+                    durationMinutes,
+                    this.routineMeta.id
+                );
+            } else {
+                await recordExercisePracticeSession(
+                    this.currentUser.userId,
+                    step.exercise.id,
+                    durationMinutes,
+                    this.routineMeta.id
+                );
+            }
+        },
+
+        confirmStopPractice() {
+            if (!this.isTimerRunning) {
+                return;
+            }
+            const plannedSeconds = this.sessionPlannedMinutes * 60;
+            const remainingSeconds = this.timerSeconds;
+            this.stopTimer();
+            const elapsedSeconds = plannedSeconds - remainingSeconds;
+            if (elapsedSeconds <= 0) {
+                return;
+            }
+            const durationMinutes = Math.min(
+                this.sessionPlannedMinutes,
+                Math.max(1, Math.ceil(elapsedSeconds / 60))
+            );
+            this.pendingRecordMinutes = durationMinutes;
+            this.openRecordPracticeModal();
+        },
+
+        async submitPendingRecord() {
+            const mins = this.pendingRecordMinutes;
+            if (mins == null) {
+                return;
+            }
+            try {
+                await this.recordCurrentStepSession(mins);
+                await this.applyStep(this.currentIndex);
+                this.hideRecordPracticeModal();
+                this.setPracticeFeedback('success', 'Practice recorded. Great work! 🎸');
+            } catch (e) {
+                console.error(e);
+                this.hideRecordPracticeModal();
+                this.setPracticeFeedback('danger', 'Could not save this practice session.');
+            }
+        },
+
         async completeCurrentStep() {
             this.stopTimer();
             const step = this.steps[this.currentIndex];
@@ -333,34 +418,24 @@ document.addEventListener('alpine:init', () => {
             }
             const mins = this.sessionPlannedMinutes;
             try {
-                if (step.item_type === 'song') {
-                    await recordSongPracticeSession(
-                        this.currentUser.userId,
-                        step.song.id,
-                        mins,
-                        this.routineMeta.id
-                    );
-                } else {
-                    await recordExercisePracticeSession(
-                        this.currentUser.userId,
-                        step.exercise.id,
-                        mins,
-                        this.routineMeta.id
-                    );
-                }
+                await this.recordCurrentStepSession(mins);
             } catch (e) {
                 console.error(e);
-                alert('Could not save this practice session. You can still continue the routine.');
+                this.setPracticeFeedback(
+                    'danger',
+                    'Could not save this practice session. You can still continue the routine.'
+                );
+                return;
             }
 
             if (this.currentIndex >= this.steps.length - 1) {
-                alert('Routine complete — great work!');
+                this.setPracticeFeedback('success', 'Routine complete — great work!');
                 return;
             }
 
             this.currentIndex += 1;
             await this.applyStep(this.currentIndex);
-            alert('Step complete! Continue when you are ready.');
+            this.setPracticeFeedback('success', 'Step complete! Continue when you are ready.');
         },
 
         async goPrev() {
