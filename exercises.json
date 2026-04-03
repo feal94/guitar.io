@@ -223,6 +223,14 @@
     "description": "Exercise 45. A classic melody that introduces the concept of 'pickup notes' (incomplete measure at the start). Practices notes on the first three strings (G, B, E) and counting rhythms.",
     "difficulty": "beginner",
     "category": "reading"
+  },
+  {
+    "id": "travis_picking",
+    "title": "Travis Picking",
+    "description": "Travis Picking: A finger picking technique that involes repeating a particular kind of right-hand pattern of thumb and finger moves throughout a song, adapting that pattern to the notes of each chord,",
+    "difficulty": "beginner",
+    "category": "fingerpicking",
+    "image_path": "images/exercises/travis_picking.png"
   }
 ]
 
