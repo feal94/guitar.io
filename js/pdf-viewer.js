@@ -53,13 +53,25 @@ document.addEventListener('alpine:init', () => {
         _subject: null,
         _urlKey: null,
 
+        _getSubject() {
+            if (typeof this._subject === 'function') {
+                return this._subject();
+            }
+            return this._subject;
+        },
+
+        _getCurrentUrl() {
+            const currentSubject = this._getSubject();
+            return currentSubject?.[this._urlKey];
+        },
+
         async init() {
             this._subject = subject;
             this._urlKey = urlKey;
             await Alpine.nextTick();
             await Alpine.nextTick();
             this.$watch(
-                () => subject?.[urlKey],
+                () => this._getCurrentUrl(),
                 async (url, prev) => {
                     if (prev !== undefined && url !== prev) {
                         this.pdfZoom = 1;
@@ -67,22 +79,22 @@ document.addEventListener('alpine:init', () => {
                     await this.renderPdf(url);
                 }
             );
-            await this.renderPdf(subject?.[urlKey]);
+            await this.renderPdf(this._getCurrentUrl());
         },
 
         async pdfZoomIn() {
             this.pdfZoom = Math.min(4, Math.round((this.pdfZoom + 0.25) * 100) / 100);
-            await this.renderPdf(this._subject?.[this._urlKey]);
+            await this.renderPdf(this._getCurrentUrl());
         },
 
         async pdfZoomOut() {
             this.pdfZoom = Math.max(0.5, Math.round((this.pdfZoom - 0.25) * 100) / 100);
-            await this.renderPdf(this._subject?.[this._urlKey]);
+            await this.renderPdf(this._getCurrentUrl());
         },
 
         async pdfZoomFit() {
             this.pdfZoom = 1;
-            await this.renderPdf(this._subject?.[this._urlKey]);
+            await this.renderPdf(this._getCurrentUrl());
         },
 
         async renderPdf(url) {
